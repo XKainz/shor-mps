@@ -2,6 +2,7 @@
 import numpy as np
 import numpy.linalg as la
 import numpy_helpers as nph
+import matplotlib.pyplot as plt
 
 class SuperMPS:
     def __init__(self,*args,xi,cutoff=1e-8):
@@ -103,3 +104,22 @@ class SuperMPS:
     
     def get_A_config(self):
         return self.get_A_B_config(self.L-1)
+    
+    def print_all_shapes(self):
+        for i in range(self.to_MPS_index(len(self.MPS))):
+            print("[$i]",self.MPS[i].shape)
+    
+    def plot_schmidt_values(self):
+        plt.figure(figsize=(15,7))
+        for i in range(self.L):
+            d = np.diagonal(self.get_schmidt_matrix(i,'l'))
+            plt.plot(range(len(d)),np.absolute(d),label="i="+str(i))
+        plt.show()
+
+    def plot_bond_dims(self):
+        plt.figure(figsize=(15,7))
+        d = []
+        for i in range(self.L-1):
+            d.append[self[i].shape[-1]]
+        plt.plot(range(len(d)),np.absolute(d),label="Bond Dimensions from i to i+1")
+        plt.show()

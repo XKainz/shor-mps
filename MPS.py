@@ -3,6 +3,7 @@ from SuperMPS import SuperMPS
 import numpy as np
 import numpy_helpers as nph
 import numpy.linalg as la
+import Gates as gt
 
 
 class MPS(SuperMPS):
@@ -14,6 +15,8 @@ class MPS(SuperMPS):
     def apply_1_site_gate(self, gate, i):
         if i < 0 or i >= self.L:
             raise ValueError("i must be in range [0,self.L)")
+        if not isinstance(gate,gt.Gate):
+            raise TypeError("gate must be a Gate object")
         if gate.shape != (2,2):
             raise ValueError("gate must be a 1x1 matrix")
         self[i] = np.tensordot(gate,self[i],axes=(1,0))
@@ -21,6 +24,8 @@ class MPS(SuperMPS):
     def apply_2_site_gate(self,gate,i):
         if i < 0 or i >= self.L-2:
             raise ValueError("i must be in range [0,self.L-2)")
+        if not isinstance(gate,gt.Gate):
+            raise TypeError("gate must be a Gate object")
         if gate.shape != (2,)*4:
             raise ValueError("gate must be a 2x2x2x2 matrix")
         

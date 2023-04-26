@@ -1,5 +1,6 @@
 '''Gate.py'''
 import numpy as np
+import numpy.linalg as la
 import cmath
 import math
 
@@ -60,4 +61,12 @@ def cx_pow_2k_mod_N(N,x,k):
     for i in range(1,k):
         cx_pow_2k_mod_N.append(cx_pow_2k_mod_N[i-1].combine(cx_pow_2k_mod_N[i-1]))
     return cx_pow_2k_mod_N
+
+def rand_1_site_U():
+    phi = np.random.uniform(0,2*np.pi)
+    v = np.random.rand(2)+1j*np.random.rand(2)
+    v = v/la.norm(v)
+    U = np.array([[v[0],v[1]],
+                  [-np.conj(v[1])*np.exp(1j*phi),np.exp(1j*phi)*np.conj(v[0])]])
+    return Gate(U)
 

@@ -59,7 +59,7 @@ class SuperMPS:
         i_end = self.to_MPS_index(i_end)+1
         contracted_tensor = self.MPS[i_start]
         for i in range(i_start+1,i_end+1):
-            contracted_tensor = np.tensordot(contracted_tensor,self.MPS[i],axes=([1],[0]))
+            contracted_tensor = np.tensordot(contracted_tensor,self.MPS[i],axes=([-1],[0]))
         return contracted_tensor
 
     def to_MPS_index(self,i):
@@ -106,8 +106,8 @@ class SuperMPS:
         return self.get_A_B_config(self.L-1)
     
     def print_all_shapes(self):
-        for i in range(self.to_MPS_index(len(self.MPS))):
-            print("[$i]",self.MPS[i].shape)
+        for i in range(self.to_MPS_index(len(self))):
+            print("[",i,"]",self.MPS[i].shape)
     
     def plot_schmidt_values(self):
         plt.figure(figsize=(15,7))
@@ -120,6 +120,6 @@ class SuperMPS:
         plt.figure(figsize=(15,7))
         d = []
         for i in range(self.L-1):
-            d.append[self[i].shape[-1]]
+            d.append(self[i].shape[-1])
         plt.plot(range(len(d)),np.absolute(d),label="Bond Dimensions from i to i+1")
         plt.show()

@@ -57,3 +57,11 @@ class MPS(SuperMPS):
                 p_total *= p[r[i+1]]
             samples[j,:] = r[1:]
         return samples
+    
+def create_MPS_init_to_1(length,xi,cutoff=1e-8):
+    mps = [np.ones((1,1),dtype="complex"),np.array([[[0],[1]]],dtype="complex")]
+    for i in range(1,length):
+        mps.append(np.ones((1,1),dtype="complex"))
+        mps.append(np.array([[[1],[0]]],dtype="complex"))
+    return MPS(mps,xi=xi,cutoff=cutoff)
+        

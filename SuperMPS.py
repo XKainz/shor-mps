@@ -26,6 +26,8 @@ class SuperMPS:
             if len(tensor.shape)%self.indices_per_node != 0:
                 raise ValueError("Tensor shape is not compatible with indices_per_node")
             self.L = len(tensor.shape)//self.indices_per_node
+            if self.indices_per_node != 1:
+                tensor = transpose_gate_ind_format(tensor,self.indices_per_node)
             MPS = [np.ones((1,1),dtype="complex")]
             tensor = np.reshape(tensor,(1,)+tensor.shape)
             for i in range(self.L):
@@ -123,3 +125,12 @@ class SuperMPS:
             d.append(self[i].shape[-1])
         plt.plot(range(len(d)),np.absolute(d),label="Bond Dimensions from i to i+1")
         plt.show()
+def transpose_gate_ind_format(gate,ind_per_node):
+    if len(gate.shape)%ind_per_node != 0:
+        raise ValueError("Tensor shape is not compatible with indices_per_node")
+    L = len(gate.shape)//ind_per_node
+    tranpose_vec = [0,]*len(gate.shape)
+    for i in range(L):
+        for j in range(ind_per_node):
+            tranpose_vec[i*ind_per_node+j] = i+j*L
+    return np.transpose(gate,tranpose_vec)

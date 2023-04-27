@@ -15,17 +15,13 @@ class MPS(SuperMPS):
     def apply_1_site_gate(self, gate, i):
         if i < 0 or i >= self.L:
             raise ValueError("i must be in range [0,self.L)")
-        if not isinstance(gate,gt.Gate):
-            raise TypeError("gate must be a Gate object")
         if gate.shape != (2,2):
             raise ValueError("gate must be a 1x1 matrix")
-        self[i] = np.tensordot(gate,self[i],axes=(1,0))
+        self[i] = np.tensordot(gate,self[i],axes=(1,1)).transpose((1,0,2))
 
     def apply_2_site_gate(self,gate,i):
         if i < 0 or i >= self.L-2:
             raise ValueError("i must be in range [0,self.L-2)")
-        if not isinstance(gate,gt.Gate):
-            raise TypeError("gate must be a Gate object")
         if gate.shape != (2,)*4:
             raise ValueError("gate must be a 2x2x2x2 matrix")
         
@@ -41,9 +37,9 @@ class MPS(SuperMPS):
         v = np.reshape(v,(ximin,)+s2)
         u = np.tensordot(la.inv(self.get_schmidt_matrix(i,'l')),u,axes=([1],[0]))
         v = np.tensordot(v,la.inv(self.get_schmidt_matrix(i+1,'r')),axes=([2],[1]))
-        MPS[i] = u
+        self[i] = u
         self.set_schmidt_matrix(i+1,'l',d)
-        MPS[i+1] = v
+        self[i+1] = v
 
     def sample(self,n_samples):
         BMPS = self.get_B_config()

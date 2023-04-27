@@ -31,20 +31,20 @@ def x_mod_N(N,x):
     return U
 
 def cx_mod_N(N,x):
-    x_mod_N = x_mod_N(N,x)
-    d = len(x_mod_N.shape)//2
-    x_mod_N = np.reshape(x_mod_N,(2**d,2**d))
-    cx_mod_N = np.zeros((2**(d+1),2**(d+1)))
-    cx_mod_N[:2**d,:2**d] = np.identity(2**d)
-    cx_mod_N[2**d:,2**d:] = x_mod_N
-    cx_mod_N = cx_mod_N.reshape([2]*(d+1)*2)
-    return cx_mod_N
+    x_mod_N_gate = x_mod_N(N,x)
+    d = len(x_mod_N_gate.shape)//2
+    x_mod_N_gate = np.reshape(x_mod_N_gate,(2**d,2**d))
+    cx_mod_N_gate = np.zeros((2**(d+1),2**(d+1)))
+    cx_mod_N_gate[:2**d,:2**d] = np.identity(2**d)
+    cx_mod_N_gate[2**d:,2**d:] = x_mod_N_gate
+    cx_mod_N_gate = cx_mod_N_gate.reshape([2]*(d+1)*2)
+    return cx_mod_N_gate
                         
 def cx_pow_2k_mod_N(N,x,k):
-    cx_pow_2k_mod_N = [cx_mod_N(N,x)]
+    cx_pow_2k_mod_N_gate = [cx_mod_N(N,x)]
     for i in range(1,k):
-        cx_pow_2k_mod_N.append(combine(cx_pow_2k_mod_N[i-1],cx_pow_2k_mod_N[i-1]))
-    return cx_pow_2k_mod_N
+        cx_pow_2k_mod_N_gate.append(combine(cx_pow_2k_mod_N_gate[i-1],cx_pow_2k_mod_N_gate[i-1]))
+    return cx_pow_2k_mod_N_gate
 
 def rand_1_site_U():
     phi = np.random.uniform(0,2*np.pi)

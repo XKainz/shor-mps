@@ -125,6 +125,13 @@ class SuperMPS:
             d.append(self[i].shape[-1])
         plt.plot(range(len(d)),np.absolute(d),label="Bond Dimensions from i to i+1")
         plt.show()
+    
+    def maximum_bond_dim(self):
+        d = []
+        for i in range(self.L-1):
+            d.append(self[i].shape[-1])
+        return max(d)
+
 def transpose_gate_ind_format(gate,ind_per_node):
     if len(gate.shape)%ind_per_node != 0:
         raise ValueError("Tensor shape is not compatible with indices_per_node")

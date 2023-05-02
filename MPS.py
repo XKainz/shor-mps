@@ -24,21 +24,18 @@ class MPS(SuperMPS):
             raise ValueError("i must be in range [0,self.L-2)")
         if gate.shape != (2,)*4:
             raise ValueError("gate must be a 2x2x2x2 matrix")
-        
-        theta = self.get_contracted_tensor(i,i+1)
-        theta = np.tensordot(gate,theta,axes=([2,3],[1,2]))
-        theta = np.transpose(theta,[2,0,1,3])
+        theta = self.get_contracted_tensor(i,i+2)
+        theta = np.einsum('komn,imnj->ikoj',gate,theta)
         s1 = theta.shape[:2]
         s2 = theta.shape[2:]
         theta = np.reshape(theta,(int(np.prod(s1)),int(np.prod(s2))))
         u,s,v,ximin = nph.trunc_svd(theta,self.xi,self.cutoff)
-        d = np.diag(s)
         u = np.reshape(u,s1+(ximin,))
         v = np.reshape(v,(ximin,)+s2)
-        u = np.tensordot(la.inv(self.get_schmidt_matrix(i,'l')),u,axes=([1],[0]))
-        v = np.tensordot(v,la.inv(self.get_schmidt_matrix(i+1,'r')),axes=([2],[1]))
+        u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),u)
+        v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+1,'r'))
         self[i] = u
-        self.set_schmidt_matrix(i+1,'l',d)
+        self.set_schmidt_values(i,'r',s)
         self[i+1] = v
 
     def sample(self,n_samples):
@@ -59,9 +56,10 @@ class MPS(SuperMPS):
         return samples
     
 def create_MPS_init_to_1(length,xi,cutoff=1e-8):
-    mps = [np.ones((1,1),dtype="complex"),np.array([[[0],[1]]],dtype="complex")]
+    mps = [np.ones(1,dtype="complex"),np.array([[[0],[1]]],dtype="complex")]
     for i in range(1,length):
-        mps.append(np.ones((1,1),dtype="complex"))
+        mps.append(np.ones(1,dtype="complex"))
         mps.append(np.array([[[1],[0]]],dtype="complex"))
+    mps.append(np.ones(1,dtype="complex"))
     return MPS(mps,xi=xi,cutoff=cutoff)
         

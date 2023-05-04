@@ -25,3 +25,16 @@ def trunc_svd(tensor,xi,cutoff=1e-8):
     s = renormalize_vector(s)
     return u,s,v,ximin
 
+def trunc_svd_before_index(tensor,index,xi,cutoff=1e-8):
+    if index <= 0 or index >= len(tensor.shape):
+        raise ValueError("Index out of range")
+    #reshape tensor to 2d
+    s1 = tensor.shape[:index]
+    s2 = tensor.shape[index:]
+    tensor = np.reshape(tensor,(int(np.prod(s1)),int(np.prod(s2))))
+    #perform SVD
+    u,s,v,ximin = trunc_svd(tensor,xi,cutoff)
+    #reshape u and v
+    u = np.reshape(u,s1+(ximin,))
+    v = np.reshape(v,(ximin,)+s2)
+    return u,s,v

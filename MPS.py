@@ -20,18 +20,13 @@ class MPS(SuperMPS):
         self[i] = np.tensordot(gate,self[i],axes=(1,1)).transpose((1,0,2))
 
     def apply_2_site_gate(self,gate,i):
-        if i < 0 or i >= self.L-2:
-            raise ValueError("i must be in range [0,self.L-2)")
+        if i < 0 or i >= self.L-1:
+            raise ValueError("i must be in range [0,self.L-1)")
         if gate.shape != (2,)*4:
             raise ValueError("gate must be a 2x2x2x2 matrix")
         theta = self.get_contracted_tensor(i,i+2)
         theta = np.einsum('komn,imnj->ikoj',gate,theta)
-        s1 = theta.shape[:2]
-        s2 = theta.shape[2:]
-        theta = np.reshape(theta,(int(np.prod(s1)),int(np.prod(s2))))
-        u,s,v,ximin = nph.trunc_svd(theta,self.xi,self.cutoff)
-        u = np.reshape(u,s1+(ximin,))
-        v = np.reshape(v,(ximin,)+s2)
+        u,s,v = nph.trunc_svd_before_index(theta,2,xi=self.xi,cutoff=self.cutoff)
         u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),u)
         v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+1,'r'))
         self[i] = u

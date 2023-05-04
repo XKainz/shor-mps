@@ -48,7 +48,19 @@ class MPS(SuperMPS):
                 r[i+1] = np.random.choice([0,1],p=p)
                 p_total *= p[r[i+1]]
             samples[j,:] = r[1:]
-        return samples
+
+    def measure_subspace(self,i,j):
+        if i < 0 or i > self.L-1:
+            raise ValueError("i must be in range [0,self.L)")
+        if j <= i or j > self.L:
+            raise ValueError("j must be in range [i+1,self.L+1]")
+        contracted_tensor = self.get_contracted_tensor(i,j)
+        s = contracted_tensor.shape
+        print(s,"s")
+        contracted_tensor = np.reshape(contracted_tensor,(s[0],int(np.prod(s[1:-1])),s[-1]))
+        r = np.einsum('ijk,ijk->j',contracted_tensor,np.conj(contracted_tensor))
+        r = np.real_if_close(r,tol=10**4)
+        return np.flip(r)
     
     @staticmethod
     def create_MPS_init_to_1(length,xi,cutoff=1e-8):

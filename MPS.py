@@ -56,7 +56,6 @@ class MPS(SuperMPS):
             raise ValueError("j must be in range [i+1,self.L+1]")
         contracted_tensor = self.get_contracted_tensor(i,j)
         s = contracted_tensor.shape
-        print(s,"s")
         contracted_tensor = np.reshape(contracted_tensor,(s[0],int(np.prod(s[1:-1])),s[-1]))
         r = np.einsum('ijk,ijk->j',contracted_tensor,np.conj(contracted_tensor))
         r = np.real_if_close(r,tol=10**4)

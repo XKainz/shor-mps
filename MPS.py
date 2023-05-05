@@ -60,7 +60,7 @@ class MPS(SuperMPS):
         contracted_tensor = np.reshape(contracted_tensor,(s[0],int(np.prod(s[1:-1])),s[-1]))
         r = np.einsum('ijk,ijk->j',contracted_tensor,np.conj(contracted_tensor))
         r = np.real_if_close(r,tol=10**4)
-        return np.flip(r)
+        return r
     
     @staticmethod
     def create_MPS_init_to_1(length,xi,cutoff=1e-8):

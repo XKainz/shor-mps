@@ -47,3 +47,9 @@ def number_to_binary_array(N):
     else:
         return [int(i) for i in bin(N)[2:]]
     
+def get_random_unitary(d):
+    #get random complex matrix
+    A = np.random.rand(d,d) + 1j*np.random.rand(d,d)
+    #make it unitary
+    A = la.qr(A)[0]
+    return A

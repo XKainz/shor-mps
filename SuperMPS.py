@@ -29,17 +29,13 @@ class SuperMPS:
             if self.indices_per_node != 1:
                 tensor = transpose_gate_ind_format(tensor,self.indices_per_node)
             MPS = [np.ones(1,dtype="complex")]
-            tensor = np.reshape(tensor,(1,)+tensor.shape)
+            tensor = np.reshape(tensor,(1,)+tensor.shape+(1,))
             for i in range(self.L):
-                s1 = tensor.shape[:1+self.indices_per_node]
-                s2 = tensor.shape[1+self.indices_per_node:]
-                tensor = np.reshape(tensor,(int(np.prod(s1)),int(np.prod(s2))))
-                u,s,v,ximin = nph.trunc_svd(tensor,self.xi,self.cutoff)
-                u = np.reshape(u,s1+(ximin,))
-                v = np.reshape(v,(ximin,)+s2)
+                u,s,v = nph.trunc_svd_before_index(tensor,1+self.indices_per_node,self.xi,self.cutoff)
+                u = np.einsum('k,k...->k...',1/MPS[-1],u)
                 MPS.append(u)
                 MPS.append(s)
-                tensor = v
+                tensor = np.einsum('k,k...->k...',s,v)
             self.MPS = MPS
 
     def __len__(self):
@@ -52,14 +48,12 @@ class SuperMPS:
         self.MPS[2*i+1] = value
     
     def get_contracted_tensor(self,i_start,i_end):
-        if i_start > i_end:
-            raise ValueError("i_start must be less than or equal to i_end")
-        if i_start < 0 or i_end >= self.L:
-            raise ValueError("i_start and i_end must be in range [0,self.L)")
+        if i_start <0 or i_start >= self.L:
+            raise ValueError("i_start out of range")
+        if i_end < i_start or i_end > self.L:
+            raise ValueError("i_end out of range")
         contracted_tensor = np.diag(self.get_schmidt_values(i_start,'l'))
         for i in range(i_start,i_end):
-            #print(contracted_tensor.shape,"contracted_tensor")
-            #print(self[i].shape,"self[i]")
             contracted_tensor = np.tensordot(contracted_tensor,self[i],axes=([-1],[0]))
             contracted_tensor = np.einsum('...k,k->...k',contracted_tensor,self.get_schmidt_values(i,'r'))
         return contracted_tensor
@@ -101,11 +95,39 @@ class SuperMPS:
             ABMPS.append(B)
         return ABMPS
     
+    def get_all_A(self,i,j):
+        if i < 0 or i >= self.L:
+            raise ValueError("i out of range")
+        if j < i or j > self.L:
+            raise ValueError("j out of range")
+        As = []
+        for k in range(i,j):
+            As.append(self.get_A_of_site(k))
+        return As
+    
+    def get_all_B(self,i,j):
+        if i < 0 or i >= self.L:
+            raise ValueError("i out of range")
+        if j < i or j > self.L:
+            raise ValueError("j out of range")
+        Bs = []
+        for k in range(i,j):
+            Bs.append(self.get_B_of_site(k))
+        return Bs
+    
     def get_B_config(self):
         return self.get_A_B_config(0)
     
     def get_A_config(self):
         return self.get_A_B_config(self.L)
+    
+    def get_A_of_site(self,i):
+        A = np.einsum('k,k...->k...',self.get_schmidt_values(i,'l'),self[i])
+        return A
+    
+    def get_B_of_site(self,i):
+        B = np.einsum('...k,k->...k',self[i],self.get_schmidt_values(i,'r'))
+        return B
     
     def print_all_shapes(self):
         for i in range(self.to_MPS_index(len(self))):

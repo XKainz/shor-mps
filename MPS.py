@@ -48,6 +48,39 @@ class MPS(SuperMPS):
                 r[i+1] = np.random.choice([0,1],p=p)
                 p_total *= p[r[i+1]]
             samples[j,:] = r[1:]
+    
+    def apply_mpo(self,mpo,i):
+        if i < 0 or i > self.L-mpo.L:
+            raise ValueError("i must be in range [0,self.L-1-mpo.L)")
+        k1 = len(self.get_schmidt_values(i,'l'))
+        C = np.identity(k1).reshape((k1,1,k1))
+        Amps = self.get_all_A(i,i+mpo.L)
+        Ampo = mpo.get_all_A(0,mpo.L)
+        for j in range(mpo.L):
+            #print(Amps[j].shape,"Amps[j] shape")
+            #print(Ampo[j].shape,"Ampo[j] shape")
+            #print(C.shape,"C shape")
+            C = np.einsum('ijk,klm->ijlm',C,Amps[j])
+            C = np.einsum('ijlm,jqlp->iqpm',C,Ampo[j])
+            u,s,v = nph.trunc_svd_before_index(C,2,self.xi,self.cutoff)
+            self[i+j]=np.einsum('k,k...->k...',1/self.get_schmidt_values(i+j,'l'),u)
+            self.set_schmidt_values(i+j,'r',s)
+            #print(self.to_MPS_index(i+j)+1,"self index +1")
+            C = np.einsum('k,k...->k...',s,v)
+        C = C.reshape((int(np.prod(C.shape)),))
+        s = self.get_schmidt_values(i+mpo.L,'l')
+        self.set_schmidt_values(i+mpo.L,'l',np.einsum('k,k->k',s,C))
+        self.into_canonical_form()
+
+    def into_canonical_form(self):
+        for i in range(self.L,1,-1):
+            contracted_tensor = self.get_contracted_tensor(i-2,i)
+            u,s,v = nph.trunc_svd_before_index(contracted_tensor,2,xi=self.xi,cutoff=self.cutoff)
+            u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i-2,'l'),u)
+            v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i-1,'r'))
+            self[i-2] = u
+            self.set_schmidt_values(i-1,'l',s)
+            self[i-1] = v
 
     def measure_subspace(self,i,j):
         if i < 0 or i > self.L-1:

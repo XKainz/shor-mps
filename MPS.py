@@ -62,20 +62,8 @@ class MPS(SuperMPS):
         return r
     
     @staticmethod
-    def create_MPS_init_to_1(length,xi,cutoff=1e-8):
-        MPS.create_MPS_init_to_N(1,length,xi,cutoff)
-    
-    @staticmethod
-    def create_MPS_init_to_N(N,L,xi,cutoff=1e-8):
-        if N < 0:
-            raise ValueError("N must be positive")
-        if np.ceil(np.log2(N)) > L:
-            raise ValueError("N must be less than 2**L")
-        r = nph.number_to_binary_array(N)
+    def create_MPS_init_to_r(r,xi,cutoff=1e-8):
         mps = [np.ones(1)]
-        for i in range(L-len(r)):
-            mps.append(np.array([[[0],[1]]]))
-            mps.append(np.ones(1))
         for i in r:
             if i == 0:
                 mps.append(np.array([[[1],[0]]]))
@@ -85,4 +73,18 @@ class MPS(SuperMPS):
                 raise ValueError("r not binary")
             mps.append(np.ones(1))
         return MPS(mps,xi=xi,cutoff=cutoff)
-        
+
+    @staticmethod
+    def create_MPS_init_to_N(N,L,xi,cutoff=1e-8):
+        if N < 0:
+            raise ValueError("N must be positive")
+        if np.ceil(np.log2(N)) > L:
+            raise ValueError("N must be less than 2**L")
+        r = nph.number_to_binary_array(N)
+        zeros = [0,]*(L-len(r))
+        r = zeros + r
+        return MPS.create_MPS_init_to_r(r,xi,cutoff)
+
+    @staticmethod
+    def create_MPS_init_to_1(length,xi,cutoff=1e-8):
+        return MPS.create_MPS_init_to_N(1,length,xi,cutoff)

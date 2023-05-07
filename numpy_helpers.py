@@ -47,6 +47,12 @@ def number_to_binary_array(N):
     else:
         return [int(i) for i in bin(N)[2:]]
     
+def binary_array_to_number(v):
+    n = 0
+    for i in range(len(v)):
+        n += 2**i*v[len(v)-1-i]
+    return n
+    
 def get_random_unitary(d):
     #get random complex matrix
     A = np.random.rand(d,d) + 1j*np.random.rand(d,d)

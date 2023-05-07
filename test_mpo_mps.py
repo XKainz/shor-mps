@@ -5,6 +5,7 @@ import MPO as mpo
 import Circuits as circ
 import matplotlib.pyplot as plt
 import numpy_helpers as nph
+from qm_shors_algorithm import *
 
 def plot_state_exp(MPS,i,j):
     r = MPS.measure_subspace(i,j)
@@ -97,7 +98,22 @@ def test_CU_MPO(x,k,N):
     MPS.apply_mpo(MPO,0)
     plot_state_exp(MPS,1,L)
 
-test_CU_MPO(3,6,7)
+def test_sampling():
+    N = 15
+    x = 7
+    MPS, len_a = get_shor_mps_mpo(x,N,2**8)
+    patch = MPS.measure_subspace(0,len_a)
+    sample_number = 1000
+    samples = MPS.sample_range(0,len_a,sample_number)
+    #count occurences of each number
+    counts = [0]*2**len_a
+    for i in range(sample_number):
+        counts[nph.binary_array_to_number(samples[i,:])] += 1
+    plt.figure(figsize=(17,5))
+    plt.plot(patch)
+    plt.plot(counts/np.sum(counts))
+    plt.show()
 
+test_sampling()
 
 

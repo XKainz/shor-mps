@@ -33,21 +33,32 @@ class MPS(SuperMPS):
         self.set_schmidt_values(i,'r',s)
         self[i+1] = v
 
-    def sample(self,n_samples):
-        BMPS = self.get_B_config()
-        r = np.zeros(len(BMPS),dtype="int")
-        contracted_tensor = np.ones((1,1))
-        p_total = 1
+    def sample_range(self,i,j,n_samples):
+        if i < 0 or i > self.L:
+            raise ValueError("i must be in range [0,self.L)")
+        if j < i or j > self.L:
+            raise ValueError("j must be in range [i,self.L)")
+        BMPS = self.get_A_B_config(i)[i:j+1]
+        con_start = np.diag(BMPS[0])
+        BMPS = BMPS[1:]
         samples = np.zeros((n_samples,len(BMPS)),dtype="int")
-        for j in range(n_samples):
-            for i in range(len(BMPS)):
-                contracted_tensor = np.tensordot(contracted_tensor[r[i],:],BMPS[i],axes=([0],[0]))
-                density_matrix = np.tensordot(contracted_tensor,np.conj(contracted_tensor),axes=([-1],[-1]))/p_total
+        for m in range(n_samples):
+            r = np.zeros(len(BMPS),dtype="int")
+            contracted_tensor = con_start
+            p_total = 1
+            for n in range(i,j):
+                contracted_tensor = np.einsum('ik,k...->i...',contracted_tensor,BMPS[n])
+                density_matrix = np.einsum('ijk,iqk->jq',contracted_tensor,np.conj(contracted_tensor))/p_total
                 p = np.diagonal(density_matrix)
                 p = np.real_if_close(p,tol=10**4)
-                r[i+1] = np.random.choice([0,1],p=p)
-                p_total *= p[r[i+1]]
-            samples[j,:] = r[1:]
+                r[n] = np.random.choice([0,1],p=p)
+                p_total *= p[r[n]]
+                contracted_tensor = contracted_tensor[:,r[n],:]
+            samples[m,:] = r
+        return samples
+    
+    def sample(self,n_samples):
+        return self.sample_range(0,self.L,n_samples)
     
     def apply_mpo(self,mpo,i):
         if i < 0 or i > self.L-mpo.L:
@@ -57,15 +68,11 @@ class MPS(SuperMPS):
         Amps = self.get_all_A(i,i+mpo.L)
         Ampo = mpo.get_all_A(0,mpo.L)
         for j in range(mpo.L):
-            #print(Amps[j].shape,"Amps[j] shape")
-            #print(Ampo[j].shape,"Ampo[j] shape")
-            #print(C.shape,"C shape")
             C = np.einsum('ijk,klm->ijlm',C,Amps[j])
             C = np.einsum('ijlm,jqlp->iqpm',C,Ampo[j])
             u,s,v = nph.trunc_svd_before_index(C,2,self.xi,self.cutoff)
             self[i+j]=np.einsum('k,k...->k...',1/self.get_schmidt_values(i+j,'l'),u)
             self.set_schmidt_values(i+j,'r',s)
-            #print(self.to_MPS_index(i+j)+1,"self index +1")
             C = np.einsum('k,k...->k...',s,v)
         C = C.reshape((int(np.prod(C.shape)),))
         s = self.get_schmidt_values(i+mpo.L,'l')

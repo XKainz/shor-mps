@@ -154,6 +154,30 @@ class SuperMPS:
             d.append(self[i].shape[-1])
         return max(d)
 
+    def set_xi(self,xi):
+        s = self.get_schmidt_values(0,'l')
+        xin = min(xi,len(s))
+        if xin < len(s):
+            s = s[:xin]
+            self.set_schmidt_values(0,'l',s)
+            self[0] = self[0][:xin,...]
+        for i in range(self.L-1):
+            s = self.get_schmidt_values(i,'r')
+            xin = min(xi,len(s))
+            if xin < len(s):
+                s = s[:xin]
+                s = nph.renormalize_vector(s)
+                self.set_schmidt_values(i,'r',s)
+                self[i] = self[i][...,:xin]
+                self[i+1] = self[i+1][:xin,...]
+        s = self.get_schmidt_values(self.L-1,'r')
+        xin = min(xi,len(s))
+        if xin < len(s):
+            s = s[:xin]
+            self.set_schmidt_values(0,'r',s)
+            self[self.L-1] = self[self.L-1][:xin,...]
+        self.xi = xi
+
 def transpose_gate_ind_format(gate,ind_per_node):
     if len(gate.shape)%ind_per_node != 0:
         raise ValueError("Tensor shape is not compatible with indices_per_node")

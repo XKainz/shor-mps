@@ -7,10 +7,42 @@ import Gates as gt
 
 
 class MPS(SuperMPS):
-    def __init__(self,*args,xi,cutoff=1e-8):
-        super().__init__(*args,xi=xi,cutoff=cutoff)
+    def __init__(self,mps_array,L,indices_per_node,xi,cutoff):
+        super().__init__(mps_array,L,indices_per_node,xi,cutoff)
         if self.indices_per_node != 1:
             raise ValueError("MPS must have 1 index per node")
+    
+    @staticmethod
+    def create_MPS_init_to_r(r,xi,cutoff=1e-8):
+        mps = [np.ones(1)]
+        for i in r:
+            if i == 0:
+                mps.append(np.array([[[1],[0]]]))
+            elif i == 1:
+                mps.append(np.array([[[0],[1]]]))
+            else:
+                raise ValueError("r not binary")
+            mps.append(np.ones(1))
+        mps_object = SuperMPS.create_SuperMPS_from_tensor_array(mps,xi,cutoff=cutoff)
+        mps_object.__class__ = MPS
+        return mps_object
+
+    @staticmethod
+    def create_MPS_init_to_N(N,L,xi,cutoff=1e-8):
+        if N < 0:
+            raise ValueError("N must be positive")
+        if N == 0:
+            return MPS.create_MPS_init_to_r([0,]*L,xi,cutoff)
+        elif np.ceil(np.log2(N)) > L:
+            raise ValueError("N must be less than 2**L")
+        r = nph.number_to_binary_array(N)
+        zeros = [0,]*(L-len(r))
+        r = zeros + r
+        return MPS.create_MPS_init_to_r(r,xi,cutoff)
+
+    @staticmethod
+    def create_MPS_init_to_1(length,xi,cutoff=1e-8):
+        return MPS.create_MPS_init_to_N(1,length,xi,cutoff)
     
     def apply_1_site_gate(self, gate, i):
         if i < 0 or i >= self.L:
@@ -100,31 +132,3 @@ class MPS(SuperMPS):
         r = np.einsum('ijk,ijk->j',contracted_tensor,np.conj(contracted_tensor))
         r = np.real_if_close(r,tol=10**4)
         return r
-    
-    @staticmethod
-    def create_MPS_init_to_r(r,xi,cutoff=1e-8):
-        mps = [np.ones(1)]
-        for i in r:
-            if i == 0:
-                mps.append(np.array([[[1],[0]]]))
-            elif i == 1:
-                mps.append(np.array([[[0],[1]]]))
-            else:
-                raise ValueError("r not binary")
-            mps.append(np.ones(1))
-        return MPS(mps,xi=xi,cutoff=cutoff)
-
-    @staticmethod
-    def create_MPS_init_to_N(N,L,xi,cutoff=1e-8):
-        if N < 0:
-            raise ValueError("N must be positive")
-        if np.ceil(np.log2(N)) > L:
-            raise ValueError("N must be less than 2**L")
-        r = nph.number_to_binary_array(N)
-        zeros = [0,]*(L-len(r))
-        r = zeros + r
-        return MPS.create_MPS_init_to_r(r,xi,cutoff)
-
-    @staticmethod
-    def create_MPS_init_to_1(length,xi,cutoff=1e-8):
-        return MPS.create_MPS_init_to_N(1,length,xi,cutoff)

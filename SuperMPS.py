@@ -5,38 +5,41 @@ import numpy_helpers as nph
 import matplotlib.pyplot as plt
 
 class SuperMPS:
-    def __init__(self,*args,xi,cutoff=1e-8):
+    def __init__(self,mps_array,L,indices_per_node,xi,cutoff):
+        self.MPS = mps_array
+        self.L = L
+        self.indices_per_node = indices_per_node
         self.xi = xi
         self.cutoff = cutoff
-        if isinstance(args[0],list):
-            self.MPS = args[0]
-            if self.MPS[0].shape != (1,):
-                self.MPS = [np.ones(1,dtype="complex")] + self.MPS
-            if self.MPS[-1].shape != (1,):
-                self.MPS = self.MPS + [np.ones(1,dtype="complex")]
-            self.indices_per_node = len(self.MPS[1].shape)-2
-            self.L = len(self.MPS)//2
-            for i in range(len(self.MPS)):
-                if max(self.MPS[i].shape) > self.xi:
-                    raise ValueError("xi too small for MPS")
-
-        elif isinstance(args[0],np.ndarray) and isinstance(args[1],int):
-            self.indices_per_node = args[1]
-            tensor = args[0]
-            if len(tensor.shape)%self.indices_per_node != 0:
+    
+    @staticmethod
+    def create_SuperMPS_from_tensor(tensor,indices_per_node,xi,cutoff):
+        if len(tensor.shape)%indices_per_node != 0:
                 raise ValueError("Tensor shape is not compatible with indices_per_node")
-            self.L = len(tensor.shape)//self.indices_per_node
-            if self.indices_per_node != 1:
-                tensor = transpose_gate_ind_format(tensor,self.indices_per_node)
-            MPS = [np.ones(1,dtype="complex")]
-            tensor = np.reshape(tensor,(1,)+tensor.shape+(1,))
-            for i in range(self.L):
-                u,s,v = nph.trunc_svd_before_index(tensor,1+self.indices_per_node,self.xi,self.cutoff)
-                u = np.einsum('k,k...->k...',1/MPS[-1],u)
-                MPS.append(u)
-                MPS.append(s)
-                tensor = np.einsum('k,k...->k...',s,v)
-            self.MPS = MPS
+        L = len(tensor.shape)//indices_per_node
+        if indices_per_node != 1:
+            tensor = transpose_gate_ind_format(tensor,indices_per_node)
+        MPS = [np.ones(1,dtype="complex")]
+        tensor = np.reshape(tensor,(1,)+tensor.shape+(1,))
+        for i in range(L):
+            u,s,v = nph.trunc_svd_before_index(tensor,1+indices_per_node,xi,cutoff)
+            u = np.einsum('k,k...->k...',1/MPS[-1],u)
+            MPS.append(u)
+            MPS.append(s)
+            tensor = np.einsum('k,k...->k...',s,v)
+        return SuperMPS(MPS,L,indices_per_node,xi,cutoff)
+    
+    @staticmethod
+    def create_SuperMPS_from_tensor_array(mps_array,xi,cutoff):
+        MPS = mps_array
+        if MPS[0].shape != (1,):
+            MPS = [np.ones(1,dtype="complex")] + MPS
+        if MPS[-1].shape != (1,):
+            MPS = MPS + [np.ones(1,dtype="complex")]
+        indices_per_node = len(MPS[1].shape)-2
+        L = len(MPS)//2
+        return SuperMPS(MPS,L,indices_per_node=indices_per_node,xi=xi,cutoff=cutoff)
+            
 
     def __len__(self):
         return self.L

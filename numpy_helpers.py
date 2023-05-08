@@ -42,8 +42,6 @@ def trunc_svd_before_index(tensor,index,xi,cutoff=1e-8):
 def number_to_binary_array(N):
     if N < 0:
         raise ValueError("N must be positive")
-    if N == 0:
-        return np.array([0])
     else:
         return [int(i) for i in bin(N)[2:]]
     

@@ -14,7 +14,7 @@ def get_shor_mps_mpo(x,N,xi):
     t0 = time.time()
     len_b = int(np.ceil(np.log2(N)))
     len_a = 2*len_b+3
-    print(len_a,len_b,"len_a,len_b")
+    #print(len_a,len_b,"len_a,len_b")
     len_total = len_a+len_b
 
     # Create the MPS
@@ -48,7 +48,7 @@ def get_shor_mps_fat_ten(x,N,xi):
     t0 = time.time()
     len_b = int(np.ceil(np.log2(N)))
     len_a = 2*len_b+3
-    print("len_a",len_a,"len_b",len_b)
+    #print("len_a",len_a,"len_b",len_b)
 
     # Create the MPSU
     mpsu = MPSU.create_MPSU_init_to_1(len_a,len_b,xi,cutoff)

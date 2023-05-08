@@ -167,31 +167,31 @@ def test_merge_mpo_H():
     plot_state_exp(MPS,0,10)
 
 def unpickle_test():
-    with open("to_pickle65_7.pkl","rb") as f:
+    with open("./pickles/to_pickle119_45.pkl","rb") as f:
         to_pickle = pickle.load(f)
     to_pickle.MPO_mpo.plot_schmidt_values()
     p_suc_fat = to_pickle.p_success_fat
     #print(p_suc_fat)
     plt.figure(figsize=(17,5))
     plt.plot(p_suc_fat[:,0],p_suc_fat[:,1])
-    plt.show()
+    plt.savefig("p_suc_fat119_45.png")
 
     p_suc_mpo = to_pickle.p_success_mpo
     #print(p_suc_mpo)
     plt.figure(figsize=(17,5))
     plt.plot(p_suc_mpo[:,0],p_suc_mpo[:,1])
-    plt.show()
+    plt.savefig("p_suc_mpo119_45.png")
 
     len_a = int(2*np.ceil(np.log2(to_pickle.N)))
     psi = to_pickle.MPS_mpo.measure_subspace(0,len_a)
     plt.figure(figsize=(17,5))
     plt.plot(psi)
-    plt.show()
-
+    plt.savefig("psi_mpo119_45.png")
+    
     psi = to_pickle.MPS_fat.measure_subspace(0,len_a)
     plt.figure(figsize=(17,5))
     plt.plot(psi)
-    plt.show()
+    plt.savefig("psi_fat119_45.png")
 
 
 #test_H_MPO()
@@ -207,6 +207,8 @@ def unpickle_test():
 #test_merge_mpo(7,1,15,5)
 #test_merge_mpo_H()
 #unpickle_test()
+
+
 
     
 

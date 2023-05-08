@@ -51,6 +51,7 @@ def pickle_object(N,x,xi_start):
 
     to_pickle = ToPickle(N,
                          x,
+                         len_a,
                          mps_mpo,
                          mps_fat,
                          p_suc_mpo,
@@ -59,9 +60,14 @@ def pickle_object(N,x,xi_start):
                          max_bond_dim_mpo_mpo,
                          max_bond_dim_mps_mpo,
                          max_bond_dim_fat)
-    
-    pickle.dump(to_pickle,open("to_pickle"+str(to_pickle.N)+"_"+str(to_pickle.x)+".pkl","wb"))
+    pickle.dump(to_pickle,open("./pickles/to_pickle"+str(to_pickle.N)+"_"+str(to_pickle.x)+".pkl","wb"))
 
-pickle_object(13*5,7,2**8)
+def main(i,j):
+    xi_start = 2**13
+    for i in range(i,j):
+        if N_valid(i):
+            x = sh.get_x_for_N(i)
+            pickle_object(i,x,xi_start)
 
-
+if __name__ == "__main__":
+    main(15,1023)

@@ -180,6 +180,16 @@ class SuperMPS:
             self.set_schmidt_values(0,'r',s)
             self[self.L-1] = self[self.L-1][:xin,...]
         self.xi = xi
+    
+    def into_canonical_form(self):
+        for i in range(self.L,1,-1):
+            contracted_tensor = self.get_contracted_tensor(i-2,i)
+            u,s,v = nph.trunc_svd_before_index(contracted_tensor,self.indices_per_node+1,xi=self.xi,cutoff=self.cutoff)
+            u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i-2,'l'),u)
+            v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i-1,'r'))
+            self[i-2] = u
+            self.set_schmidt_values(i-1,'l',s)
+            self[i-1] = v
 
 def transpose_gate_ind_format(gate,ind_per_node):
     if len(gate.shape)%ind_per_node != 0:

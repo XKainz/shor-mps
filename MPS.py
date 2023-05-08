@@ -111,16 +111,6 @@ class MPS(SuperMPS):
         self.set_schmidt_values(i+mpo.L,'l',np.einsum('k,k->k',s,C))
         self.into_canonical_form()
 
-    def into_canonical_form(self):
-        for i in range(self.L,1,-1):
-            contracted_tensor = self.get_contracted_tensor(i-2,i)
-            u,s,v = nph.trunc_svd_before_index(contracted_tensor,2,xi=self.xi,cutoff=self.cutoff)
-            u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i-2,'l'),u)
-            v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i-1,'r'))
-            self[i-2] = u
-            self.set_schmidt_values(i-1,'l',s)
-            self[i-1] = v
-
     def measure_subspace(self,i,j):
         if i < 0 or i > self.L-1:
             raise ValueError("i must be in range [0,self.L)")

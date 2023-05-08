@@ -16,6 +16,9 @@ def success_prob_measurement_patch(patch,x,N):
 
 def pickle_object(N,x,xi_start):
     mps_fat, len_a = get_shor_mps_fat_ten(x,N,xi_start)
+    patch = mps_fat.measure_subspace(0,len_a)
+    if success_prob_measurement_patch(patch,x,N) < 1e-2:
+        return 0
     max_bond_dim_fat = mps_fat.maximum_bond_dim()
     print(max_bond_dim_fat,"max_bond_dim_fat")
     p_suc = []
@@ -38,7 +41,7 @@ def pickle_object(N,x,xi_start):
     max_bond_dim_mpo_mpo = mpo_mpo.maximum_bond_dim()
     print(max_bond_dim_mpo_mpo,"max_bond_dim_mpo_mpo")
     p_suc = []
-    ran = range(max(max_bond_dim_mpo_mpo,max_bond_dim_mpo_mpo),4,-3)
+    ran = range(max(max_bond_dim_mpo_mpo,max_bond_dim_mps_mpo),4,-3)
     for i in ran:
         print(i,"current_xi")
         mps, len_a, mpo = get_shor_mps_mpo(x,N,i)
@@ -61,13 +64,17 @@ def pickle_object(N,x,xi_start):
                          max_bond_dim_mps_mpo,
                          max_bond_dim_fat)
     pickle.dump(to_pickle,open("./pickles/to_pickle"+str(to_pickle.N)+"_"+str(to_pickle.x)+".pkl","wb"))
+    return 1
 
 def main(i,j):
     xi_start = 2**13
     for i in range(i,j):
         if N_valid(i):
-            x = sh.get_x_for_N(i)
-            pickle_object(i,x,xi_start)
+            success = 0
+            while pickle == 0:
+                x = sh.get_x_for_N(i)
+                success = pickle_object(i,x,xi_start)
+
 
 if __name__ == "__main__":
     main(15,1023)

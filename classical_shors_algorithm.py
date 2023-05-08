@@ -71,7 +71,7 @@ def main(i,j):
     for i in range(i,j):
         if N_valid(i):
             success = 0
-            while pickle == 0:
+            while success == 0:
                 x = sh.get_x_for_N(i)
                 success = pickle_object(i,x,xi_start)
 

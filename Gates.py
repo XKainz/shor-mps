@@ -3,6 +3,8 @@ import numpy as np
 import numpy.linalg as la
 import cmath
 import math
+import copy
+from MPO import *
 
 def combine(gate1,gate2):
     if gate1.shape != gate2.shape:
@@ -30,6 +32,8 @@ def x_mod_N(N,x):
     U = U.reshape([2]*2*L)
     return U
 
+NOT = np.array([[0,1],[1,0]]).reshape(2,2)
+
 def cx_mod_N(N,x):
     x_mod_N_gate = x_mod_N(N,x)
     d = len(x_mod_N_gate.shape)//2
@@ -45,6 +49,15 @@ def cx_pow_2k_mod_N(N,x,k):
     for i in range(1,k):
         cx_pow_2k_mod_N_gate.append(combine(cx_pow_2k_mod_N_gate[i-1],cx_pow_2k_mod_N_gate[i-1]))
     return cx_pow_2k_mod_N_gate
+
+def cx_pow_2k_mod_N_mpo(N,x,k,xi,cutoff=1e-8):
+    mpok1 = MPO.create_MPO_from_tensor(cx_mod_N(N,x),xi,cutoff)
+    mpok = [mpok1]
+    for i in range(1,k):
+        mpo = copy.deepcopy(mpok[i-1])
+        mpo.merge_mpo_zip_up(mpo,0)
+        mpok.append(mpo)
+    return mpok 
 
 def rand_1_site_U():
     phi = np.random.uniform(0,2*np.pi)

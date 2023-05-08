@@ -136,19 +136,21 @@ class SuperMPS:
         for i in range(self.to_MPS_index(len(self))):
             print("[",i,"]",self.MPS[i].shape)
     
-    def plot_schmidt_values(self):
+    def plot_schmidt_values(self,title="Schmidt Values"):
         plt.figure(figsize=(15,7))
         for i in range(self.L):
             d = self.get_schmidt_values(i,'l')
-            plt.plot(range(len(d)),np.absolute(d),label="i="+str(i))
+            plt.plot(range(len(d)),np.absolute(d),label="i="+str(i),)
+        plt.title(title)
         plt.show()
 
-    def plot_bond_dims(self):
+    def plot_bond_dims(self,title="Bond Dimensions"):
         plt.figure(figsize=(15,7))
-        d = []
-        for i in range(self.L-1):
+        d = [self[0].shape[0]]
+        for i in range(self.L):
             d.append(self[i].shape[-1])
         plt.plot(range(len(d)),np.absolute(d),label="Bond Dimensions from i to i+1")
+        plt.title(title)
         plt.show()
     
     def maximum_bond_dim(self):

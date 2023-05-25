@@ -141,8 +141,11 @@ class SuperMPS:
         for i in range(self.L):
             d = self.get_schmidt_values(i,'l')
             plt.plot(range(len(d)),np.absolute(d),label="i="+str(i),)
+        plt.xlabel("Schmidt Value Index")
+        plt.ylabel("Schmidt Value")
         plt.title(title)
         plt.show()
+        plt.savefig(title+".png")
 
     def plot_bond_dims(self,title="Bond Dimensions"):
         plt.figure(figsize=(15,7))
@@ -150,8 +153,10 @@ class SuperMPS:
         for i in range(self.L):
             d.append(self[i].shape[-1])
         plt.plot(range(len(d)),np.absolute(d),label="Bond Dimensions from i to i+1")
+        plt.xlabel("Site Index")
+        plt.ylabel("Bond Dimension")
         plt.title(title)
-        plt.show()
+        plt.savefig(title+".png")
     
     def maximum_bond_dim(self):
         d = []
@@ -192,6 +197,31 @@ class SuperMPS:
             self[i-2] = u
             self.set_schmidt_values(i-1,'l',s)
             self[i-1] = v
+        
+    def entanglement_at_site(self,i,side):
+        if i < 0 or i >= self.L:
+            raise ValueError("i out of range")
+        return nph.von_neumann_entropy(self.get_schmidt_values(i,side))
+    
+    def entanglement_all_site(self):
+        ent = []
+        for i in range(self.L):
+            ent.append(self.entanglement_at_site(i,'l'))
+        ent.append(self.entanglement_at_site(self.L-1,'r'))
+        return ent
+
+    def plot_entanglement(self,title="Entaglement"):
+        plt.figure(figsize=(15,7))
+        ent = self.entanglement_all_site()
+        plt.plot(range(len(ent)),ent,label="Entanglement")
+        plt.xlabel("Site Index")
+        plt.ylabel("Von Neuman Entanglement Entropy")
+        plt.title(title)
+        plt.show()
+
+    def maximum_entanglement(self):
+        ent = self.entanglement_all_site()
+        return max(ent)
 
 def transpose_gate_ind_format(gate,ind_per_node):
     if len(gate.shape)%ind_per_node != 0:

@@ -23,24 +23,50 @@ class MPO(SuperMPS):
         return mpo_object
     
     def merge_mpo_zip_up(self,other_mpo,i):
-        if self.L < other_mpo.L:
-            raise ValueError("MPOs must have the same length")
+        if i < 0 or i > self.L-other_mpo.L:
+            raise ValueError("i must be in range [0,self.L-1-other_mpo.L)")
         k1 = len(self.get_schmidt_values(i,'l'))
         C = np.identity(k1).reshape((k1,1,k1))
-        Amps = self.get_all_A(i,i+other_mpo.L)
-        Ampo = other_mpo.get_all_A(0,other_mpo.L)
+        Bmpo1 = self.get_all_B(i,i+other_mpo.L)
+        Bmpo2 = other_mpo.get_all_B(0,other_mpo.L)
         for j in range(other_mpo.L):
-            C = np.einsum('ijk,knlm->ijnlm',C,Amps[j])
-            C = np.einsum('ijnlm,jqnp->iqlpm',C,Ampo[j])
+            C = np.einsum('ijk,knlm->ijnlm',C,Bmpo1[j])
+            C = np.einsum('jqnp,ijnlm->iqlpm',Bmpo2[j],C)
             u,s,v = nph.trunc_svd_before_index(C,3,self.xi,1e-15)
             u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i+j,'l'),u)
-            self[i+j]=np.einsum('k,k...->k...',1/self.get_schmidt_values(i+j,'l'),u)
+            self[i+j]=u
             self.set_schmidt_values(i+j,'r',s)
             C = np.einsum('k,k...->k...',s,v)
         C = C.reshape((int(np.prod(C.shape)),))
         s = self.get_schmidt_values(i+other_mpo.L,'l')
         self.set_schmidt_values(i+other_mpo.L,'l',np.einsum('k,k->k',s,C))
         self.into_canonical_form()
+
+    def merge_mpo_regularily(self,other_mpo,i):
+        if i < 0 or i > self.L-other_mpo.L:
+            raise ValueError("i must be in range [0,self.L-1-other_mpo.L)")
+        self.set_schmidt_values(i,'l',np.tensordot(other_mpo.get_schmidt_values(0,'l'),self.get_schmidt_values(i,'l'),axes=0).reshape(-1))
+        for j in range(other_mpo.L):
+            nten = np.einsum('mijn,kjql->mkiqnl',other_mpo[j],self[i+j])
+            shape = nten.shape
+            nten = np.reshape(nten,(shape[0]*shape[1],shape[2],shape[3],shape[4]*shape[5]))
+            self[i+j] = nten
+            self.set_schmidt_values(i+j,'r',np.tensordot(other_mpo.get_schmidt_values(j,'r'),self.get_schmidt_values(i+j,'r'),axes=0).reshape(-1))
+        Amps = self.get_all_A(i,i+other_mpo.L)
+        for j in range(other_mpo.L-1):
+            theta = np.einsum('kijl,lqpm->kijqpm',Amps[j],Amps[j+1])
+            q,r = nph.qr_before_index(theta,3)
+            Amps[j]=q
+            Amps[j+1]=r
+        for j in range(other_mpo.L,1,-1):
+            contracted_tensor = np.einsum('kijl,lqpm->kijqpm',Amps[j-2],Amps[j-1])
+            contracted_tensor = np.einsum('kijqpm,m->kijqpm',contracted_tensor,self.get_schmidt_values(j+i-1,'r'))
+            u,s,v = nph.trunc_svd_before_index(contracted_tensor,3,xi=self.xi,cutoff=self.cutoff)
+            v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(j+i-1,'r'))
+            self.set_schmidt_values(j+i-1,'l',s)
+            self[j+i-1] = v
+            Amps[j-2] = u
+        self[i] = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),Amps[0])
 
     def merge_mpo_naive(self,other_mpo,i):
         pass

@@ -4,6 +4,8 @@ import numpy as np
 import numpy_helpers as nph
 import numpy.linalg as la
 import Gates as gt
+import tim
+import time
 
 
 class MPS(SuperMPS):
@@ -92,16 +94,18 @@ class MPS(SuperMPS):
     def sample(self,n_samples):
         return self.sample_range(0,self.L,n_samples)
     
-    def apply_mpo(self,mpo,i):
+    def apply_mpo_zip_up(self,mpo,i):
+        tim1 = tim.Timer()
         if i < 0 or i > self.L-mpo.L:
             raise ValueError("i must be in range [0,self.L-1-mpo.L)")
         k1 = len(self.get_schmidt_values(i,'l'))
         C = np.identity(k1).reshape((k1,1,k1))
-        Amps = self.get_all_A(i,i+mpo.L)
-        Ampo = mpo.get_all_A(0,mpo.L)
+        Bmps = self.get_all_B(i,i+mpo.L)
+        Bmpo = mpo.get_all_B(0,mpo.L)
+        tim1.print_since_last("all get A")
         for j in range(mpo.L):
-            C = np.einsum('ijk,klm->ijlm',C,Amps[j])
-            C = np.einsum('ijlm,jqlp->iqpm',C,Ampo[j])
+            C = np.einsum('ijk,klm->ijlm',C,Bmps[j])
+            C = np.einsum('jqlp,ijlm->iqpm',Bmpo[j],C)
             u,s,v = nph.trunc_svd_before_index(C,2,self.xi,self.cutoff)
             self[i+j]=np.einsum('k,k...->k...',1/self.get_schmidt_values(i+j,'l'),u)
             self.set_schmidt_values(i+j,'r',s)
@@ -109,7 +113,40 @@ class MPS(SuperMPS):
         C = C.reshape((int(np.prod(C.shape)),))
         s = self.get_schmidt_values(i+mpo.L,'l')
         self.set_schmidt_values(i+mpo.L,'l',np.einsum('k,k->k',s,C))
+        
+        tim1.print_since_last("time for first sweep")
+        #self.plot_bond_dims("bond_dims_after_first_sweep"+str(time.time()))
+        print("Maximum bond dimension after first sweep: "+str(self.maximum_bond_dim()))
         self.into_canonical_form()
+        #self.plot_bond_dims("bond_dims_after_second_sweep"+str(time.time()))
+        print("Maximum bond dimension after second sweep: "+str(self.maximum_bond_dim()))
+        tim1.print_since_last("time to compress into canonicla form")
+
+    def apply_mpo_regularily(self,mpo,i):
+        if i < 0 or i > self.L-mpo.L:
+            raise ValueError("i must be in range [0,self.L-1-mpo.L)")
+        self.set_schmidt_values(i,'l',np.tensordot(mpo.get_schmidt_values(0,'l'),self.get_schmidt_values(i,'l'),axes=0).reshape(-1))
+        for j in range(mpo.L):
+            nten = np.einsum('mijn,kjl->mkinl',mpo[j],self[i+j])
+            shape = nten.shape
+            nten = np.reshape(nten,(shape[0]*shape[1],shape[2],shape[3]*shape[4]))
+            self[i+j] = nten
+            self.set_schmidt_values(i+j,'r',np.tensordot(mpo.get_schmidt_values(j,'r'),self.get_schmidt_values(i+j,'r'),axes=0).reshape(-1))
+        Amps = self.get_all_A(i,i+mpo.L)
+        for j in range(mpo.L-1):
+            theta = np.einsum('kil,ljm->kijm',Amps[j],Amps[j+1])
+            q,r = nph.qr_before_index(theta,2)
+            Amps[j]=q
+            Amps[j+1]=r
+        for j in range(mpo.L,1,-1):
+            contracted_tensor = np.einsum('ijk,klm->ijlm',Amps[j-2],Amps[j-1])
+            contracted_tensor = np.einsum('ijlm,m->ijlm',contracted_tensor,self.get_schmidt_values(j+i-1,'r'))
+            u,s,v = nph.trunc_svd_before_index(contracted_tensor,2,xi=self.xi,cutoff=self.cutoff)
+            v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(j+i-1,'r'))
+            self.set_schmidt_values(j+i-1,'l',s)
+            self[j+i-1] = v
+            Amps[j-2] = u
+        self[i] = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),Amps[0])
 
     def measure_subspace(self,i,j):
         if i < 0 or i > self.L-1:

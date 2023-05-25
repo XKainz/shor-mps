@@ -2,6 +2,9 @@
 import numpy as np
 import numpy.linalg as la
 
+def von_neumann_entropy(s):
+    return -np.sum(s**2 *np.log(s**2))
+
 #renormalize complex numpy vector
 def renormalize_vector(vector):
     #check if tensor is vector
@@ -38,6 +41,20 @@ def trunc_svd_before_index(tensor,index,xi,cutoff=1e-8):
     u = np.reshape(u,s1+(ximin,))
     v = np.reshape(v,(ximin,)+s2)
     return u,s,v
+
+def qr_before_index(tensor,index):
+    if index <= 0 or index >= len(tensor.shape):
+        raise ValueError("Index out of range")
+    #reshape tensor to 2d
+    s1 = tensor.shape[:index]
+    s2 = tensor.shape[index:]
+    tensor = np.reshape(tensor,(int(np.prod(s1)),int(np.prod(s2))))
+    #perform QR
+    q,r = la.qr(tensor)
+    #reshape q and r
+    q = np.reshape(q,s1+(q.shape[-1],))
+    r = np.reshape(r,(r.shape[0],)+s2)
+    return q,r
 
 def number_to_binary_array(N):
     if N < 0:

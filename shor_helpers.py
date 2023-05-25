@@ -4,6 +4,27 @@ import math
 import contfrac
 import miller_rabin
 import numpy as np
+import numpy_helpers as nph
+
+def success_prob_measurement_patch(patch,x,N):
+    prob_success = 0
+    for i in range(len(patch)):
+        if patch[i] > 1/(len(patch)*2):
+            r = get_r(i,len(patch),N)
+            if does_r_work(x,r,N)==1:
+                prob_success += patch[i]
+    return prob_success
+
+def success_prob_measurement_samples(samples,x,N):
+    successful_samples = 0
+    for i in range(samples.shape[0]):
+        v = samples[i,:]
+        i = nph.binary_array_to_number(v)
+        r = get_r(i,2**len(v),N)
+        if does_r_work(x,r,N)==1:
+            successful_samples += 1
+    return successful_samples/samples.shape[0]
+
 
 def get_x_for_N(N):
     x = random.randint(2,N)

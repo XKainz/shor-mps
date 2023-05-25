@@ -17,6 +17,7 @@ def plot_state_exp(MPS,i,j,title="plot state amplitude"):
     plt.plot(r)
     plt.title(title)
     plt.show()
+    plt.savefig(title+".png")
 
 def test_H_MPO():
     #create MPO from list of H
@@ -100,7 +101,7 @@ def test_CU_MPO(x,k,N):
     CU_gates = gates.cx_pow_2k_mod_N(N,x,5)
     MPS.apply_1_site_gate(gates.H,0)
     MPO = mpo.MPO.create_MPO_from_tensor(CU_gates[0],xi=2**8,cutoff=1e-8)
-    MPS.apply_mpo(MPO,0)
+    MPS.apply_mpo_regularily(MPO,0)
     plot_state_exp(MPS,1,L)
 
 def test_sampling():
@@ -125,25 +126,19 @@ def test_merge_mpo(x,k,N,iteration):
     L = int(np.ceil(np.log2(N)))+1
     mps = MPS.create_MPS_init_to_N(k,L,xi=2**8,cutoff=1e-8)
     mps.apply_1_site_gate(gates.NOT,0)
-    t0 = time.time()
     merge_mpos = gates.cx_pow_2k_mod_N_mpo(N,x,iteration,xi=2**8,cutoff=1e-8)
-    t1 = time.time()
-    print("time for merge mpo: ",t1-t0)
-    t0 = time.time()
     gate_mpos = get_mpos_from_gates_directly(x,N,iteration)
-    t1 = time.time()
-    print("time for gate mpo: ",t1-t0)
     for i in range(1,iteration):
-        merge_mpos[i].plot_bond_dims(title="merge mpo")
-        gate_mpos[i].plot_bond_dims(title="gate mpo")
-        merge_mpos[i].plot_schmidt_values(title="merge mpo")
-        gate_mpos[i].plot_schmidt_values(title="gate mpo")
+        merge_mpos[i].plot_bond_dims(title="merge mpo bond dims"+str(i))
+        gate_mpos[i].plot_bond_dims(title="gate mpo bond dims"+str(i))
+        merge_mpos[i].plot_schmidt_values(title="merge mpo schmidt values"+str(i))
+        gate_mpos[i].plot_schmidt_values(title="gate mpo schmidt values"+str(i))
         mpscopy = copy.deepcopy(mps)
-        mpscopy.apply_mpo(merge_mpos[i],0)
-        plot_state_exp(mpscopy,1,L,title="merge mpo")
+        mpscopy.apply_mpo_regularily(merge_mpos[i],0)
+        plot_state_exp(mpscopy,1,L,title="merge mpo state"+str(i))
         mpscopy = copy.deepcopy(mps)
-        mpscopy.apply_mpo(gate_mpos[i],0)
-        plot_state_exp(mpscopy,1,L,title="gate mpo")
+        mpscopy.apply_mpo_regularily(gate_mpos[i],0)
+        plot_state_exp(mpscopy,1,L,title="gate mpo state"+str(i))
     
 
 def get_mpos_from_gates_directly(x,N,iteration,xi=2**8,cutoff=1e-8):
@@ -163,7 +158,7 @@ def test_merge_mpo_H():
     MPO = mpo.MPO.create_MPO_from_tensor_array(MPOlist,xi=2**8,cutoff=1e-8)
     MPO.merge_mpo_zip_up(MPO,0)
     MPS.apply_1_site_gate(gates.H,0)
-    MPS.apply_mpo(MPO,0)
+    MPS.apply_mpo_regularily(MPO,0)
     plot_state_exp(MPS,0,10)
 
 def unpickle_test():
@@ -204,8 +199,8 @@ def unpickle_test():
 #test_U_MPO(7,3,15)
 #test_CU_MPO(7,1,15)
 #test_sampling()
-#test_merge_mpo(7,1,15,5)
-#test_merge_mpo_H()
+test_merge_mpo(7,1,11,5)
+test_merge_mpo_H()
 #unpickle_test()
 
 

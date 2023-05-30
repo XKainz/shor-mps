@@ -22,6 +22,26 @@ class MPO(SuperMPS):
         mpo_object.__class__ = MPO
         return mpo_object
     
+    def merge_1_site_gate(self,gate,i):
+        if i < 0 or i >= self.L:
+            raise ValueError("i must be in range [0,self.L)")
+        if gate.shape != (2,2):
+            raise ValueError("gate must be a 2x2 matrix")
+        self[i] = np.einsum('ij,kjlm->kilm',gate,self[i])
+
+    def merge_2_site_gate(self,gate,i):
+        if i < 0 or i >= self.L-1:
+            raise ValueError("i must be in range [0,self.L-1)")
+        if gate.shape != (2,)*4:
+            raise ValueError("gate must be a 2x2x2x2 tensor")
+        theta = self.get_contracted_tensor(i,i+2)
+        theta = np.einsum('komn,imlngj->iklogj',gate,theta)
+        u,s,v = nph.trunc_svd_before_index(theta,3,xi=self.xi,cutoff=self.cutoff,norm=2**((self.L)/2))
+        u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),u)
+        v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+1,'r'))
+        self[i] = u
+        self.set_schmidt_values(i,'r',s)
+        self[i+1] = v
     def merge_mpo_zip_up(self,other_mpo,i):
         if i < 0 or i > self.L-other_mpo.L:
             raise ValueError("i must be in range [0,self.L-1-other_mpo.L)")

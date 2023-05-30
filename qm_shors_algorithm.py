@@ -51,7 +51,43 @@ def get_shor_mps_mpo(x,N,xi):
     tim1.print_since_last("Inverse Fourier transform applied in")
     return mps, len_a, first_mpo
 
-def get_shor_mps_fat_ten(x,N,xi):
+def get_shor_mps_mpo_2(x,N,xi):
+    tim1 = tim.Timer()
+    len_b = int(np.ceil(np.log2(N)))
+    len_a = 2*len_b+3
+    #print(len_a,len_b,"len_a,len_b")
+    len_total = len_a+len_b
+
+    # Create the MPS
+    mps = MPS.create_MPS_init_to_N(1,len_total,xi=xi,cutoff=cutoff)
+
+    #apply hadamards gates to all sites of len_a
+    for i in range(len_a):
+        mps.apply_1_site_gate(gates.H,i)
+
+
+    tim1.print_since_last("MPS initialized in")
+    #get control U gates
+    mpos = gates.cx_pow_2k_mod_N_mpo(N,x,len_a,xi,cutoff=cutoff)
+    tim1.print_since_last("Control U mpos gates created in")
+
+    #apply the controlled U gates
+    for i in range(len_a):
+        tim2 = tim.Timer()
+        mps.apply_mpo_zip_up(mpos[len_a-1-i],len_a-1)
+        tim2.print_since_last("MPO applied in")
+        for j in range(len_a-2,i-1,-1):
+            mps.apply_2_site_gate(gates.SWAP,j) 
+        tim2.print_since_last("SWAP gates applied in")
+    
+    tim1.print_since_last("Control U gates applied in")
+
+    #apply the inverse fourier transform
+    mps = circ.fourier_transform_MPS(mps,0,len_a,inv=True)
+    tim1.print_since_last("Inverse Fourier transform applied in")
+    return mps, len_a, mpos[0]
+
+def get_shor_mps_fat_ten(x,N,xi,fourier_mpo=True):
     timer = tim.Timer()
     len_b = int(np.ceil(np.log2(N)))
     len_a = 2*len_b+3
@@ -80,9 +116,15 @@ def get_shor_mps_fat_ten(x,N,xi):
             mpsu.apply_2_site_gate(gates.SWAP,j)
         timer.print_since_last("SWAP gates applied in")
     timer2.print_since_start("Total time for applying gates all fat U gates")
-    
+
+    if fourier_mpo:
+        mpofourier = circ.get_fourier_transform_mpo(len_a,xi)
+        #apply the inverse fourier transform
+        mpsu.apply_mpo_regularily(mpofourier,0)
+    else:
+        mpsu = circ.fourier_transform_MPS(mpsu,0,len_a,inv=False)
     #apply the inverse fourier transform
-    mpsu = circ.fourier_transform_MPS(mpsu,0,len_a,inv=True)
+    
     timer.print_since_last("Inverse Fourier transform applied in")
     timer.print_since_start("Total time")
     return mpsu, len_a

@@ -6,7 +6,7 @@
 
 # if you want to get notified by email, remove the first `# ` from the following lines (such that they start with `#$ -...`)
 #$ -M xaver.kainz@tum.de  # put your email address here!
-#$ -m a  # n="NO_MAIL", a="MAIL_AT_ABORT", e="MAIL_AT_EXIT", combination `-m ae` is allowed
+#$ -m ae  # n="NO_MAIL", a="MAIL_AT_ABORT", e="MAIL_AT_EXIT", combination `-m ae` is allowed
 
 #$ -pe smp 4
 #$ -q cond-mat-short
@@ -17,6 +17,10 @@ export MKL_NUM_THREADS=$NSLOTS   # This inserts the *same* number as specified i
 export OMP_NUM_THREADS=$NSLOTS   # This inserts the *same* number as specified in the line ``#$ -pe smp ...`` above
 export NUMBA_NUM_THREADS=$NSLOTS
 
+source activate ba
+
 echo "Execute job on host $HOSTNAME at $(date) with $NSLOTS cores"
 python classical_shors_algorithm.py
 echo "finished job at $(date)"
+
+source deactivate

@@ -42,6 +42,12 @@ class MPO(SuperMPS):
         self[i] = u
         self.set_schmidt_values(i,'r',s)
         self[i+1] = v
+
+    def get_contracted_tensor_in_readable_form(self):
+        contracted = self.get_contracted_tensor(0,self.L)
+        contracted = tensor_to_readable_form(contracted,self.L)
+        
+    
     def merge_mpo_zip_up(self,other_mpo,i):
         if i < 0 or i > self.L-other_mpo.L:
             raise ValueError("i must be in range [0,self.L-1-other_mpo.L)")
@@ -88,6 +94,40 @@ class MPO(SuperMPS):
             Amps[j-2] = u
         self[i] = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),Amps[0])
 
-    def merge_mpo_naive(self,other_mpo,i):
-        pass
+    def merge_mpo_zip_up_inv_alist(self,alist,i):
+        L = len(alist)
+        if i < 0 or i > self.L-L:
+            raise ValueError("i must be in range [0,self.L-len(alist))")
+        end_index = i+L-1
+        send = self.get_schmidt_values(end_index,'r')
+        k1 = len(send)
+        Ampo1 = self.get_all_A(i,i+L)
+        Ampo1[L-1] = np.einsum('...k,k->...k',Ampo1[L-1],send)
+        Ampo2 = alist
+        C = np.identity(k1).reshape((1,k1,k1))
+        for j in range(L-1,-1,-1):
+            C = np.einsum('knlm,pmi->knlpi',Ampo1[j],C)
+            C = np.einsum('jqnp,knlpi->jkqli',Ampo2[j],C)
+            u,s,v = nph.trunc_svd_before_index(C,2,self.xi,cutoff=self.cutoff,norm=2**((self.L)/2))
+            v  = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+j,'r'))
+            self[i+j]=v
+            self.set_schmidt_values(i+j,'l',s)
+            C = np.einsum('...k,k->...k',u,s)
+        if i > 0:
+            C = np.einsum('...k,k->...k',C,1/self.get_schmidt_values(i,'l'))
+            C = C.reshape(C.shape[1:])
+            self[i-1] = np.einsum('knlm,mi->knli',self[i-1],C)
+        else:
+            s = self.get_schmidt_values(i,'l')
+            self.set_schmidt_values(i,'l',np.einsum('k,k->k',s,C.reshape(-1)))
+        self.into_canonical_form(up_down='down')
+
+def tensor_to_readable_form(ten,dims):
+    contracted = ten
+    contracted = contracted.reshape(contracted.shape[1:-1])
+    t = [*range(0,2*dims,2)]
+    t.extend([*range(1,2*dims,2)])
+    contracted = contracted.transpose(t)
+    contracted = contracted.reshape(2**dims,2**dims)
+    return contracted
     

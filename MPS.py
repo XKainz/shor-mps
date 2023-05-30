@@ -100,8 +100,8 @@ class MPS(SuperMPS):
             raise ValueError("i must be in range [0,self.L-1-mpo.L)")
         k1 = len(self.get_schmidt_values(i,'l'))
         C = np.identity(k1).reshape((k1,1,k1))
-        Bmps = self.get_all_B(i,i+mpo.L)
-        Bmpo = mpo.get_all_B(0,mpo.L)
+        Bmps = self.get_all_A(i,i+mpo.L)
+        Bmpo = mpo.get_all_A(0,mpo.L)
         tim1.print_since_last("all get A")
         for j in range(mpo.L):
             C = np.einsum('ijk,klm->ijlm',C,Bmps[j])

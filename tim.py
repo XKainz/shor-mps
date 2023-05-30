@@ -1,41 +1,37 @@
 '''tim.py'''
 import time
 
-class Timer(object):
+class tim(object):
     def __init__(self):
-        self.last = time.time()
-        self.start = self.last
+        timstamp = Timstamp("start")
+        self.timstamps = [timstamp]
     
     def print_since_last(self, msg):
-        now = time.time()
-        diff = now - self.last
+        timstamp =Timstamp(msg)
+        diff = timstamp.start - self.timstamps[-1].start
+        self.timstamps.append(timstamp)
         print(msg, diff)
-        self.last = now
         return diff
     
     def print_since_start(self, msg):
-        now = time.time()
-        diff = now - self.start
+        timstamp =Timstamp(msg)
+        diff = timstamp.start - self.timstamps[0].start 
+        self.timstamps.append(timstamp)
         print(msg, diff)
-        self.last = now
         return diff
     
-    def since_last(self):
-        now = time.time()
-        diff = now - self.last
-        self.last = now
-        return diff
-
-    def since_start(self):
-        now = time.time()
-        diff = now - self.start
-        self.last = now
+    def print_since(self, msg, i):
+        timstamp =Timstamp(msg)
+        diff = timstamp.start - self.timstamps[i].start
+        self.timstamps.append(timstamp)
+        print(msg, diff)
         return diff
     
-    def reset(self):
-        self.last = time.time()
-        self.start = self.last
-
-    def set_last(self):
-        self.last = time.time()
+    def add_timstamp(self, msg):
+        timstamp =Timstamp(msg)
+        self.timstamps.append(timstamp)
     
+class Timstamp(object):
+    def __init__(self,msg):
+        self.msg = msg
+        self.start = time.time()

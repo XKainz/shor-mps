@@ -32,7 +32,7 @@ class MPO(SuperMPS):
         for j in range(other_mpo.L):
             C = np.einsum('ijk,knlm->ijnlm',C,Bmpo1[j])
             C = np.einsum('jqnp,ijnlm->iqlpm',Bmpo2[j],C)
-            u,s,v = nph.trunc_svd_before_index(C,3,self.xi,1e-15)
+            u,s,v = nph.trunc_svd_before_index(C,3,self.xi,1e-15,norm=2**((self.L)/2))
             u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i+j,'l'),u)
             self[i+j]=u
             self.set_schmidt_values(i+j,'r',s)
@@ -61,7 +61,7 @@ class MPO(SuperMPS):
         for j in range(other_mpo.L,1,-1):
             contracted_tensor = np.einsum('kijl,lqpm->kijqpm',Amps[j-2],Amps[j-1])
             contracted_tensor = np.einsum('kijqpm,m->kijqpm',contracted_tensor,self.get_schmidt_values(j+i-1,'r'))
-            u,s,v = nph.trunc_svd_before_index(contracted_tensor,3,xi=self.xi,cutoff=self.cutoff)
+            u,s,v = nph.trunc_svd_before_index(contracted_tensor,3,xi=self.xi,cutoff=self.cutoff,norm=2**((self.L)/2))
             v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(j+i-1,'r'))
             self.set_schmidt_values(j+i-1,'l',s)
             self[j+i-1] = v

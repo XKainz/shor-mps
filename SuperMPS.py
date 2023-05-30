@@ -188,15 +188,31 @@ class SuperMPS:
             self[self.L-1] = self[self.L-1][:xin,...]
         self.xi = xi
     
-    def into_canonical_form(self):
-        for i in range(self.L,1,-1):
-            contracted_tensor = self.get_contracted_tensor(i-2,i)
-            u,s,v = nph.trunc_svd_before_index(contracted_tensor,self.indices_per_node+1,xi=self.xi,cutoff=self.cutoff)
-            u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i-2,'l'),u)
-            v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i-1,'r'))
-            self[i-2] = u
-            self.set_schmidt_values(i-1,'l',s)
-            self[i-1] = v
+    def into_canonical_form(self,up_down='up'):
+        if self.indices_per_node == 1:
+            norm = 1
+        else:
+            norm = 2**(self.L/2)
+        if up_down == 'down':
+            for i in range(self.L-1):
+                contracted_tensor = self.get_contracted_tensor(i,i+2)
+                u,s,v = nph.trunc_svd_before_index(contracted_tensor,1+self.indices_per_node,xi=self.xi,cutoff=self.cutoff,norm=norm)
+                u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),u)
+                v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+1,'r'))
+                self[i] = u
+                self.set_schmidt_values(i,'r',s)
+                self[i+1] = v
+        elif up_down == 'up':
+            for i in range(self.L,1,-1):
+                contracted_tensor = self.get_contracted_tensor(i-2,i)
+                u,s,v = nph.trunc_svd_before_index(contracted_tensor,self.indices_per_node+1,xi=self.xi,cutoff=self.cutoff,norm=norm)
+                u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i-2,'l'),u)
+                v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i-1,'r'))
+                self[i-2] = u
+                self.set_schmidt_values(i-1,'l',s)
+                self[i-1] = v
+        else:
+            raise ValueError("up_down must be 'up' or 'down'")
         
     def entanglement_at_site(self,i,side):
         if i < 0 or i >= self.L:
@@ -222,6 +238,13 @@ class SuperMPS:
     def maximum_entanglement(self):
         ent = self.entanglement_all_site()
         return max(ent)
+    
+    def print_all(self):
+        for i in range(self.L):
+            print("Site",i)
+            print("Schmidt Values Left:",self.get_schmidt_values(i,'l').shape,self.get_schmidt_values(i,'l'))
+            print("Schmidt Values Right:",self.get_schmidt_values(i,'l').shape,self.get_schmidt_values(i,'r'))
+            print("Tensor:",self[i].shape,self[i])
 
 def transpose_gate_ind_format(gate,ind_per_node):
     if len(gate.shape)%ind_per_node != 0:

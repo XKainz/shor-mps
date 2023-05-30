@@ -13,7 +13,7 @@ def renormalize_vector(vector):
     else:
         raise ValueError("Tensor is not a vector")
     
-def trunc_svd(tensor,xi,cutoff=1e-8):
+def trunc_svd(tensor,xi,cutoff=1e-8,norm=1):
     u,s,v = la.svd(tensor,full_matrices=False)
     #cut off singular values after xi
     u = u[:,:xi]
@@ -25,10 +25,11 @@ def trunc_svd(tensor,xi,cutoff=1e-8):
     s = s[s>cutoff]
     ximin = min(xi,len(s))
     #renormalize singular values
-    s = renormalize_vector(s)
+    if norm>0:
+        s = norm*renormalize_vector(s)
     return u,s,v,ximin
 
-def trunc_svd_before_index(tensor,index,xi,cutoff=1e-8):
+def trunc_svd_before_index(tensor,index,xi,cutoff=1e-8,norm=1):
     if index <= 0 or index >= len(tensor.shape):
         raise ValueError("Index out of range")
     #reshape tensor to 2d
@@ -36,7 +37,7 @@ def trunc_svd_before_index(tensor,index,xi,cutoff=1e-8):
     s2 = tensor.shape[index:]
     tensor = np.reshape(tensor,(int(np.prod(s1)),int(np.prod(s2))))
     #perform SVD
-    u,s,v,ximin = trunc_svd(tensor,xi,cutoff)
+    u,s,v,ximin = trunc_svd(tensor,xi,cutoff,norm=norm)
     #reshape u and v
     u = np.reshape(u,s1+(ximin,))
     v = np.reshape(v,(ximin,)+s2)

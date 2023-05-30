@@ -4,6 +4,7 @@ import numpy.linalg as la
 import cmath
 import math
 import copy
+import tim 
 from MPO import *
 
 def combine(gate1,gate2):
@@ -54,9 +55,13 @@ def cx_pow_2k_mod_N_mpo(N,x,k,xi,cutoff=1e-8):
     mpok1 = MPO.create_MPO_from_tensor(cx_mod_N(N,x),xi,cutoff)
     mpok = [mpok1]
     for i in range(1,k):
+        timer = tim.Timer()
         mpo = copy.deepcopy(mpok[i-1])
-        mpo.merge_mpo_zip_up(mpo,0)
+        timer.print_since_last("copy")
+        mpo.merge_mpo_regularily(mpo,0)
+        timer.print_since_last("merge")
         mpok.append(mpo)
+        timer.print_since_last("append")
     return mpok 
 
 def rand_1_site_U():

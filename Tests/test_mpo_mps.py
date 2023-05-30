@@ -188,6 +188,15 @@ def unpickle_test():
     plt.plot(psi)
     plt.savefig("psi_fat119_45.png")
 
+def test_fourier_MPO():
+    N = 3
+    MPS = mps.MPS.create_MPS_init_to_N(1,N,xi=2**8,cutoff=1e-8)
+    MPO = circ.get_fourier_transform_mpo(N,xi=2**8)
+    MPS.apply_mpo_regularily(MPO,0)
+    #MPS = circ.fourier_transform_MPS(MPS,0,N)
+    plot_state_exp(MPS,0,N)
+
+
 
 #test_H_MPO()
 #test_fourier_MPS()
@@ -199,10 +208,10 @@ def unpickle_test():
 #test_U_MPO(7,3,15)
 #test_CU_MPO(7,1,15)
 #test_sampling()
-test_merge_mpo(7,1,11,5)
-test_merge_mpo_H()
+#test_merge_mpo(7,1,11,5)
+#test_merge_mpo_H()
 #unpickle_test()
-
+test_fourier_MPO()
 
 
     

@@ -15,7 +15,10 @@ def success_prob_measurement_patch(patch,x,N):
                 prob_success += patch[i]
     return prob_success
 
-def success_prob_measurement_samples(samples,x,N):
+def success_prob_measurement_samples(samples,x,N,invert=True):
+    if invert == True:
+        for i in range(len(samples[:,0])):
+            samples[i,:]=np.flip(samples[i,:])
     successful_samples = 0
     for i in range(samples.shape[0]):
         v = samples[i,:]

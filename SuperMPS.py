@@ -219,12 +219,18 @@ class SuperMPS:
             raise ValueError("i out of range")
         return nph.von_neumann_entropy(self.get_schmidt_values(i,side))
     
-    def entanglement_all_site(self):
+    def get_entanglement_all_sites(self):
         ent = []
         for i in range(self.L):
             ent.append(self.entanglement_at_site(i,'l'))
         ent.append(self.entanglement_at_site(self.L-1,'r'))
         return ent
+
+    def get_schmidt_values_all_sites(self):
+        schmidt_values = [self.get_schmidt_values(0,'l')]
+        for i in range(self.L):
+            schmidt_values.append(self.get_schmidt_values(i,'r'))
+        return schmidt_values
 
     def plot_entanglement(self,title="Entaglement"):
         plt.figure(figsize=(15,7))

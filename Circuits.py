@@ -18,14 +18,21 @@ def reverse_bit_order_mpo(mpo):
     return mpo
 
 #Fourier transform MPS
-def fourier_transform_MPS(MPS,i,j,inv=False,rev=False):
-    for n in range(i,j):
+def fourier_transform_MPS(MPS,len_a,inv=False,rev=False):
+    for n in range(len_a):
         MPS.apply_1_site_gate(H,0)
-        for m in range(0,j-1-n):
+        for m in range(0,len_a-1-n):
             mgate = combine(SWAP,R(m+2,inv=inv))
             MPS.apply_2_site_gate(mgate,m)
     if rev:
         MPS = reverse_bit_order(MPS)
+    return MPS
+
+def fourier_transform_MPO(MPS,len_a,inv=False):
+    print(len_a,"len_a",MPS.L,"MPS.L")
+    fourier_mpo  = get_fourier_transform_mpo(len_a,inv=inv)
+    #fourier_mpo = reverse_bit_order_mpo(fourier_mpo)
+    MPS.apply_mpo_regularily(fourier_mpo,0)
     return MPS
 
 def get_delta3():
@@ -49,24 +56,26 @@ def get_H_copy():
     return np.einsum("ijk,jl->ilk",get_delta3(),H).reshape(1,2,2,2)
 
 #Build Fourier transform MPO
-def get_H_Phase_alist(len_a):
+def get_H_Phase_alist(len_a,inv=False):
     alist = [get_H_copy().reshape(1,2,2,2)]
     for i in range(1,len_a-1):
-        alist.append(get_4_phase(math.pi/2**(i)))
-    alist.append(get_3_phase(math.pi/2**(len_a-1)))
+        alist.append(get_4_phase(math.pi/2**(i)*((-1)**inv)))
+    alist.append(get_3_phase(math.pi/2**(len_a-1)*((-1)**inv)))
     return alist
 
-def get_fourier_transform_mpo(len_a,xi=2**8):
+def get_fourier_transform_mpo(len_a,xi=2**8,inv=False):
     MPOlist = [np.ones(1)]
     for i in range(len_a):
         MPOlist.append(np.eye(2).reshape(1,2,2,1))
         MPOlist.append(np.ones(1)) 
     mpo = MPO.create_MPO_from_tensor_array(MPOlist,xi=xi,cutoff=1e-8)
     for i in range(len_a-1):
-        alist = get_H_Phase_alist(len_a-i)
+        alist = get_H_Phase_alist(len_a-i,inv=inv)
         mpo.merge_mpo_zip_up_inv_alist(alist,i)
     mpo.merge_1_site_gate(H,len_a-1)
     return mpo
+
+
 
 ##Move this to MPO.py
 def get_identity_mpo(len_a,xi=2**8):
@@ -76,3 +85,16 @@ def get_identity_mpo(len_a,xi=2**8):
         MPOlist.append(np.ones(1)) 
     mpo = MPO.create_MPO_from_tensor_array(MPOlist,xi=xi,cutoff=1e-8)
     return mpo
+'''
+L=4
+mpo = get_identity_mpo(L)
+fourier_mpo = get_fourier_transform_mpo(L,xi=2**13,inv=True)
+mpo.merge_mpo_regularily(fourier_mpo,0)
+mpo = reverse_bit_order_mpo(mpo)
+#ten = mpo.get_contracted_tensor_in_readable_form()
+#print(np.angle(ten,deg=True))
+mps = MPS.create_MPS_init_to_N(2,4,xi=2**13)
+mps.apply_mpo_regularily(mpo,0)
+a = mps.get_contracted_tensor(0,L).reshape(2**L)
+print(np.abs(a),np.angle(a,deg=True))
+'''

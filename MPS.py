@@ -95,9 +95,9 @@ class MPS(SuperMPS):
         return self.sample_range(0,self.L,n_samples)
     
     def apply_mpo_zip_up(self,mpo,i):
-        tim1 = tim.Timer()
+        tim1 = tim.Tim()
         if i < 0 or i > self.L-mpo.L:
-            raise ValueError("i must be in range [0,self.L-1-mpo.L)")
+            raise ValueError("i must be in range [0,self.L-mpo.L)")
         k1 = len(self.get_schmidt_values(i,'l'))
         C = np.identity(k1).reshape((k1,1,k1))
         Bmps = self.get_all_A(i,i+mpo.L)
@@ -110,9 +110,13 @@ class MPS(SuperMPS):
             self[i+j]=np.einsum('k,k...->k...',1/self.get_schmidt_values(i+j,'l'),u)
             self.set_schmidt_values(i+j,'r',s)
             C = np.einsum('k,k...->k...',s,v)
-        C = C.reshape((int(np.prod(C.shape)),))
-        s = self.get_schmidt_values(i+mpo.L,'l')
-        self.set_schmidt_values(i+mpo.L,'l',np.einsum('k,k->k',s,C))
+        if i < self.L-1:
+            C = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'r'),C)
+            C = C.reshape((C.shape[0],C.shape[1]))
+            self[i+1] = np.einsum('ik,klm->ilm',C,self[i+1])
+        else:
+            s = self.get_schmidt_values(i,'l')
+            self.set_schmidt_values(i,'l',np.einsum('k,k->k',s,C.reshape(-1)))
         
         tim1.print_since_last("time for first sweep")
         #self.plot_bond_dims("bond_dims_after_first_sweep"+str(time.time()))

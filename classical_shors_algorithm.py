@@ -9,7 +9,7 @@ import tim
 
 def pickle_object(N,x,xi_start):
     mps_fat, len_a = get_shor_mps_fat_ten(x,N,xi_start)
-    timer = tim.Timer()
+    timer = tim.Tim()
     patch = mps_fat.measure_subspace(0,len_a)
     timer.print_since_last("patch measured in")
     if success_prob_measurement_patch(patch,x,N) < 1e-2:
@@ -81,7 +81,7 @@ def main_2(x,N,xi_start,mpo = True):
         mps_fat, len_a, mpo_mpo = get_shor_mps_mpo(x,N,xi_start)
     else: 
         mps_fat, len_a = get_shor_mps_fat_ten(x,N,xi_start)
-    timer = tim.Timer()
+    timer = tim.Tim()
     patch = mps_fat.measure_subspace(0,len_a)
     timer.print_since_last("patch measured in")
     success_p = success_prob_measurement_patch(patch,x,N)

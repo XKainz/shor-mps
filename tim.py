@@ -1,7 +1,7 @@
 '''tim.py'''
 import time
 
-class tim(object):
+class Tim(object):
     def __init__(self):
         timstamp = Timstamp("start")
         self.timstamps = [timstamp]

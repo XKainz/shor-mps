@@ -41,7 +41,7 @@ def get_shor_fat(N,x,xi):
     
     tim1.print_since_start("Total time for applying gates all fat U gates")
     tim1.print_since_start("Total time before inverse Fourier transform")
-    return mpsu.MPS, len_a, tim1
+    return mpsu , len_a, tim1
 
 def get_shor_mpo(N,x,xi,mpos):
     tim1 = tim.Tim()

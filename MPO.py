@@ -46,6 +46,7 @@ class MPO(SuperMPS):
     def get_contracted_tensor_in_readable_form(self):
         contracted = self.get_contracted_tensor(0,self.L)
         contracted = tensor_to_readable_form(contracted,self.L)
+        return contracted
         
     
     def merge_mpo_zip_up(self,other_mpo,i):

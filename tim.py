@@ -31,6 +31,9 @@ class Tim(object):
         timstamp =Timstamp(msg)
         self.timstamps.append(timstamp)
     
+    def __getitem__(self, i):
+        return self.timstamps[i].start
+
 class Timstamp(object):
     def __init__(self,msg):
         self.msg = msg

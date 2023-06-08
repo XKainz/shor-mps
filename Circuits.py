@@ -5,10 +5,10 @@ from MPO import *
 from Gates import *
 import tim
 
-def reverse_bit_order(MPS):
-    for i in range(MPS.L-1):
-        for j in range(MPS.L-1-i):
-            MPS.apply_2_site_gate(SWAP,j)
+def reverse_bit_order(MPS,i,j):
+    for m in range(i,j-1):
+        for n in range(j-1-m):
+            MPS.apply_2_site_gate(SWAP,n)
     return MPS
 
 def reverse_bit_order_mpo(mpo):

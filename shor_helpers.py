@@ -22,8 +22,8 @@ def success_prob_measurement_samples(samples,x,N,invert=True):
     successful_samples = 0
     for i in range(samples.shape[0]):
         v = samples[i,:]
-        i = nph.binary_array_to_number(v)
-        r = get_r(i,2**len(v),N)
+        j = nph.binary_array_to_number(v)
+        r = get_r(j,2**len(v),N)
         if does_r_work(x,r,N)==1:
             successful_samples += 1
     return successful_samples/samples.shape[0]
@@ -71,11 +71,16 @@ def check_N_single_prime_composite(N):
             return True
     return False
 
-def does_r_work(x,r,N):
+def does_r_work(x,r,N,mod=False):
     if r%2 != 0:
         return 0
-    g = math.gcd(int(x**(r/2)+1),N)
-    if g == N or g == 1:
+    try:
+        power = pow((int)(x),(int)(r/2))
+        g = math.gcd(power+1,N)
+        if g == N or g == 1:
+            return 0
+        else:
+            return 1
+    except OverflowError:
+        print("OverflowError")
         return 0
-    else:
-        return 1

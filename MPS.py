@@ -80,7 +80,7 @@ class MPS(SuperMPS):
             r = np.zeros(len(BMPS),dtype="int")
             contracted_tensor = con_start
             p_total = 1
-            for n in range(i,j):
+            for n in range(0,j-i):
                 contracted_tensor = np.einsum('ik,k...->i...',contracted_tensor,BMPS[n])
                 density_matrix = np.einsum('ijk,iqk->jq',contracted_tensor,np.conj(contracted_tensor))/p_total
                 p = np.diagonal(density_matrix)
@@ -125,6 +125,33 @@ class MPS(SuperMPS):
         #self.plot_bond_dims("bond_dims_after_second_sweep"+str(time.time()))
         print("Maximum bond dimension after second sweep: "+str(self.maximum_bond_dim()))
         tim1.print_since_last("time to compress into canonicla form")
+
+    def apply_mpo_zip_up_2(self,mpo,i):
+        if i < 0 or i > self.L-mpo.L:
+            raise ValueError("i must be in range [0,self.L-len(alist))")
+        end_index = i+mpo.L-1
+        send = self.get_schmidt_values(end_index,'r')
+        k1 = len(send)
+        Amps1 = self.get_all_A(i,i+mpo.L)
+        Amps1[mpo.L-1] = np.einsum('...k,k->...k',Amps1[mpo.L-1],send)
+        Ampo2 = mpo.get_all_A(0,mpo.L)
+        C = np.identity(k1).reshape((1,k1,k1))
+        for j in range(mpo.L-1,-1,-1):
+            C = np.einsum('knm,pmi->knpi',Amps1[j],C)
+            C = np.einsum('jqnp,knpi->jkqi',Ampo2[j],C)
+            u,s,v = nph.trunc_svd_before_index(C,2,self.xi,cutoff=self.cutoff,norm=2**((self.L)/2))
+            v  = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+j,'r'))
+            self[i+j]=v
+            self.set_schmidt_values(i+j,'l',s)
+            C = np.einsum('...k,k->...k',u,s)
+        if i > 0:
+            C = np.einsum('...k,k->...k',C,1/self.get_schmidt_values(i,'l'))
+            C = C.reshape(C.shape[1:])
+            self[i-1] = np.einsum('knm,mi->kni',self[i-1],C)
+        else:
+            s = self.get_schmidt_values(i,'l')
+            self.set_schmidt_values(i,'l',np.einsum('k,k->k',s,C.reshape(-1)))
+        self.into_canonical_form(up_down='down')
 
     def apply_mpo_regularily(self,mpo,i):
         if i < 0 or i > self.L-mpo.L:

@@ -65,7 +65,7 @@ def get_shor_mpo(N,x,xi,mpos):
     #apply the controlled U gates
     for i in range(len_a):
         tim2 = tim.Tim()
-        mps.apply_mpo_regularily(mpos[len_a-1-i],len_a-1)
+        mps.apply_mpo_zip_up_2(mpos[len_a-1-i],len_a-1)
         tim2.print_since_last("MPO applied in")
         for j in range(len_a-2,i-1,-1):
             mps.apply_2_site_gate(gates.SWAP,j) 

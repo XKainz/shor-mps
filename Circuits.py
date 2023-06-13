@@ -32,7 +32,7 @@ def fourier_transform_MPO(MPS,len_a,inv=False):
     print(len_a,"len_a",MPS.L,"MPS.L")
     fourier_mpo  = get_fourier_transform_mpo(len_a,inv=inv)
     #fourier_mpo = reverse_bit_order_mpo(fourier_mpo)
-    MPS.apply_mpo_regularily(fourier_mpo,0)
+    MPS.apply_mpo_zip_up_2(fourier_mpo,0)
     return MPS
 
 def get_delta3():
@@ -85,16 +85,4 @@ def get_identity_mpo(len_a,xi=2**8):
         MPOlist.append(np.ones(1)) 
     mpo = MPO.create_MPO_from_tensor_array(MPOlist,xi=xi,cutoff=1e-8)
     return mpo
-'''
-L=4
-mpo = get_identity_mpo(L)
-fourier_mpo = get_fourier_transform_mpo(L,xi=2**13,inv=True)
-mpo.merge_mpo_regularily(fourier_mpo,0)
-mpo = reverse_bit_order_mpo(mpo)
-#ten = mpo.get_contracted_tensor_in_readable_form()
-#print(np.angle(ten,deg=True))
-mps = MPS.create_MPS_init_to_N(2,4,xi=2**13)
-mps.apply_mpo_regularily(mpo,0)
-a = mps.get_contracted_tensor(0,L).reshape(2**L)
-print(np.abs(a),np.angle(a,deg=True))
-'''
+

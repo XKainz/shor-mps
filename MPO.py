@@ -48,27 +48,12 @@ class MPO(SuperMPS):
         contracted = tensor_to_readable_form(contracted,self.L)
         return contracted
         
-    
     def merge_mpo_zip_up(self,other_mpo,i):
         if i < 0 or i > self.L-other_mpo.L:
             raise ValueError("i must be in range [0,self.L-1-other_mpo.L)")
-        k1 = len(self.get_schmidt_values(i,'l'))
-        C = np.identity(k1).reshape((k1,1,k1))
-        Bmpo1 = self.get_all_B(i,i+other_mpo.L)
-        Bmpo2 = other_mpo.get_all_B(0,other_mpo.L)
-        for j in range(other_mpo.L):
-            C = np.einsum('ijk,knlm->ijnlm',C,Bmpo1[j])
-            C = np.einsum('jqnp,ijnlm->iqlpm',Bmpo2[j],C)
-            u,s,v = nph.trunc_svd_before_index(C,3,self.xi,1e-15,norm=2**((self.L)/2))
-            u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i+j,'l'),u)
-            self[i+j]=u
-            self.set_schmidt_values(i+j,'r',s)
-            C = np.einsum('k,k...->k...',s,v)
-        C = C.reshape((int(np.prod(C.shape)),))
-        s = self.get_schmidt_values(i+other_mpo.L,'l')
-        self.set_schmidt_values(i+other_mpo.L,'l',np.einsum('k,k->k',s,C))
-        self.into_canonical_form()
-
+        alist_other_MPO = other_mpo.get_all_A(0,other_mpo.L)
+        self.merge_mpo_zip_up_inv_alist(alist_other_MPO,i)    
+    
     def merge_mpo_regularily(self,other_mpo,i):
         if i < 0 or i > self.L-other_mpo.L:
             raise ValueError("i must be in range [0,self.L-1-other_mpo.L)")

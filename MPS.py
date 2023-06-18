@@ -6,6 +6,7 @@ import numpy.linalg as la
 import Gates as gt
 import tim
 import time
+import copy
 
 
 class MPS(SuperMPS):
@@ -178,6 +179,61 @@ class MPS(SuperMPS):
             self[j+i-1] = v
             Amps[j-2] = u
         self[i] = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),Amps[0])
+
+    def collapse_subspace(self,i,j):
+        if i < 0 or i > self.L-1:
+            raise ValueError("i must be in range [0,self.L)")
+        if j <= i or j > self.L:
+            raise ValueError("j must be in range [i+1,self.L]")
+        if i==0 and j==self.L:
+            raise ValueError("sample the whole MPS instead of collapsing")
+        samples = self.sample_range(i,j,1)[0,:]
+        As = self.get_all_A(i,j)
+        As[-1] = np.einsum('...k,k->...k',As[-1],self.get_schmidt_values(j,'l'))
+        contracted_ten = As[0][:,samples[0],:]
+        for l in range(1,j-i):
+            print(l,"l")
+            print(contracted_ten.shape,As[l][:,samples[l]:].shape)
+            contracted_ten = np.tensordot(contracted_ten,As[l][:,samples[l],:],axes=([-1],[0]))
+            
+        
+        tensors = [copy.deepcopy(self.get_schmidt_values(0,'l'))]
+        if 0<i and j<self.L:
+            for m in range(0,i-1):
+                tensors.append(copy.deepcopy(self[m]))
+                tensors.append(copy.deepcopy(self.get_schmidt_values(m,'r')))
+            
+            middle = np.tensordot(np.einsum('k,k...->k...',self.get_schmidt_values(i-1,'l'),self[i-1]),contracted_ten,axes=([-1],[0]))
+            middle = np.tensordot(middle,self[j],axes=([-1],[0]))
+            u,s,v = nph.trunc_svd_before_index(middle,2,xi=self.xi,cutoff=self.cutoff)
+            u = np.einsum('k...,k->k...',1/self.get_schmidt_values(i-1,'l'),u)
+            tensors.append(u)
+            tensors.append(s)
+            v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(j,'r'))
+            tensors.append(v)
+            for m in range(j,self.L):
+                tensors.append(copy.deepcopy(self[m]))
+                tensors.append(copy.deepcopy(self.get_schmidt_values(m,'r')))
+        elif i==0:
+            middle = np.tensordot(contracted_ten,self[j],axes=([-1],[0]))
+            tensors.append(middle)
+            tensors.append(copy.deepcopy(self.get_schmidt_values(j,'r')))
+            for m in range(j+1,self.L):
+                tensors.append(copy.deepcopy(self[m]))
+                tensors.append(copy.deepcopy(self.get_schmidt_values(m,'r')))
+        elif j==self.L:
+            for m in range(0,i-1):
+                tensors.append(copy.deepcopy(self[m]))
+                tensors.append(copy.deepcopy(self.get_schmidt_values(m,'r')))
+            middle = np.tensordot(self[i-1],contracted_ten,axes=([-1],[0]))
+            tensors.append(middle)
+            tensors.append(copy.deepcopy(self.get_schmidt_values(self.L-1,'r')))
+        
+        new =  SuperMPS.create_SuperMPS_from_tensor_array(tensors,self.xi,self.cutoff) 
+        new.__class__ = MPS 
+        new.into_canonical_form('down')
+        return new
+
 
     def measure_subspace(self,i,j):
         if i < 0 or i > self.L-1:

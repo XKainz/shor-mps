@@ -58,9 +58,6 @@ def get_shor_mpo(N,x,xi,mpos):
         mps.apply_1_site_gate(gates.H,i)
 
     tim1.print_since_last("MPS initialized in")
-    #get control U gates
-    cu_gates = gates.cx_pow_2k_mod_N(N,x,len_a)
-    tim1.print_since_last("Control U gates created in")
 
     #apply the controlled U gates
     for i in range(len_a):

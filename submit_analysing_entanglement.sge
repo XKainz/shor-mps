@@ -20,7 +20,7 @@ export NUMBA_NUM_THREADS=$NSLOTS
 source activate ba
 
 echo "Execute job on host $HOSTNAME at $(date) with $NSLOTS cores"
-python classical_shors_algorithm.py
+python analysing_entanglement.py
 echo "finished job at $(date)"
 
 source deactivate

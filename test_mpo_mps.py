@@ -9,7 +9,7 @@ from qm_shors_algorithm import *
 import time
 import copy
 import pickle
-from to_pickle import *
+#from to_pickle import *
 
 def plot_state_exp(MPS,i,j,title="plot state amplitude"):
     r = MPS.measure_subspace(i,j)
@@ -189,12 +189,25 @@ def unpickle_test():
     plt.savefig("psi_fat119_45.png")
 
 def test_fourier_MPO():
-    N = 3
+    N = 8
     MPS = mps.MPS.create_MPS_init_to_N(1,N,xi=2**8,cutoff=1e-8)
     MPO = circ.get_fourier_transform_mpo(N,xi=2**8)
     MPS.apply_mpo_regularily(MPO,0)
     #MPS = circ.fourier_transform_MPS(MPS,0,N)
     plot_state_exp(MPS,0,N)
+
+def test_fourier_phase():
+    L=4
+    mpo = circ.get_identity_mpo(L)
+    fourier_mpo = circ.get_fourier_transform_mpo(L,xi=2**13,inv=True)
+    mpo.merge_mpo_zip_up(fourier_mpo,0)
+    mpo = circ.reverse_bit_order_mpo(mpo)
+    #ten = mpo.get_contracted_tensor_in_readable_form()
+    #print(np.angle(ten,deg=True))
+    mps = MPS.create_MPS_init_to_N(1,4,xi=2**13)
+    mps.apply_mpo_zip_up_2(mpo,0)
+    a = mps.get_contracted_tensor(0,L).reshape(2**L)
+    print(np.abs(a),np.angle(a,deg=True))
 
 
 
@@ -211,7 +224,7 @@ def test_fourier_MPO():
 #test_merge_mpo(7,1,11,5)
 #test_merge_mpo_H()
 #unpickle_test()
-test_fourier_MPO()
+#test_fourier_MPO()
 
 
     

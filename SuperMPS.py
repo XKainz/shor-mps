@@ -11,6 +11,7 @@ class SuperMPS:
         self.indices_per_node = indices_per_node
         self.xi = xi
         self.cutoff = cutoff
+        self.xi_thrown_away = []
     
     @staticmethod
     def create_SuperMPS_from_tensor(tensor,indices_per_node,xi,cutoff):
@@ -261,3 +262,8 @@ def transpose_gate_ind_format(gate,ind_per_node):
         for j in range(ind_per_node):
             tranpose_vec[i*ind_per_node+j] = i+j*L
     return np.transpose(gate,tranpose_vec)
+
+class xi_away(object):
+    def __init__(self,xi,function_that_called_xi_away):
+        self.xi = xi
+        self.function_that_called_xi_away = function_that_called_xi_away

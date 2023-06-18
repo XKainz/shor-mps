@@ -33,7 +33,6 @@ class MPSU(MPS):
         if len(gate.shape) != 2*(self.Lrb+1):
             raise ValueError("Gate is not of appropriate size for register_b")
         con_ten = np.einsum('...i,i->...i',self.get_A_of_site(self.L-1),self.get_schmidt_values(self.L-1,'r'))
-        print(con_ten.shape, self.register_b.shape)
         con_ten = np.tensordot(con_ten,self.register_b,axes=([-1],[0]))
         con_ten = np.tensordot(gate,con_ten,([*range(self.Lrb+1,2*(self.Lrb+1))],[*range(1,self.Lrb+2)]))
         con_ten = np.transpose(con_ten,[self.Lrb+1]+[*range(self.Lrb+1)])

@@ -9,17 +9,20 @@ class MPO(SuperMPS):
         super().__init__(*args,2, xi=xi, cutoff=cutoff)
         if self.indices_per_node != 2:
             raise ValueError("MPO must have 2 indices per node")
+        self.largest_xi_during_zip_up = 0
                 
     @staticmethod
     def create_MPO_from_tensor(tensor,xi,cutoff):
         mpo_object = SuperMPS.create_SuperMPS_from_tensor(tensor,2,xi,cutoff)
         mpo_object.__class__ = MPO
+        mpo_object.largest_xi_during_zip_up = 0
         return mpo_object
     
     @staticmethod
     def create_MPO_from_tensor_array(tensor_array,xi,cutoff):
         mpo_object = SuperMPS.create_SuperMPS_from_tensor_array(tensor_array,xi,cutoff)
         mpo_object.__class__ = MPO
+        mpo_object.largest_xi_during_zip_up = 0
         return mpo_object
     
     def merge_1_site_gate(self,gate,i):
@@ -94,7 +97,9 @@ class MPO(SuperMPS):
         for j in range(L-1,-1,-1):
             C = np.einsum('knlm,pmi->knlpi',Ampo1[j],C)
             C = np.einsum('jqnp,knlpi->jkqli',Ampo2[j],C)
-            u,s,v = nph.trunc_svd_before_index(C,2,self.xi,cutoff=self.cutoff,norm=2**((self.L)/2))
+            u,s,v, ximin, other_xi = nph.trunc_svd_before_index_ximin_xi_away(C,2,self.xi,cutoff=self.cutoff,norm=2**((self.L)/2))
+            if ximin > self.largest_xi_during_zip_up:
+                self.largest_xi_during_zip_up = ximin
             v  = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+j,'r'))
             self[i+j]=v
             self.set_schmidt_values(i+j,'l',s)

@@ -231,7 +231,7 @@ class MPS(SuperMPS):
         
         new =  SuperMPS.create_SuperMPS_from_tensor_array(tensors,self.xi,self.cutoff) 
         new.__class__ = MPS 
-        new.into_canonical_form('down')
+        new.into_canonical_form('up')
         return new
 
 

@@ -4,12 +4,13 @@ import numpy as np
 import numpy_helpers as nph
 
 from SuperMPS import SuperMPS
+from SuperMPS import xi_away
 class MPO(SuperMPS):
     def __init__(self, *args, xi, cutoff=1e-8):
         super().__init__(*args,2, xi=xi, cutoff=cutoff)
         if self.indices_per_node != 2:
             raise ValueError("MPO must have 2 indices per node")
-        self.largest_xi_during_zip_up = 0
+        self.largest_xi_during_zip_up = 1
                 
     @staticmethod
     def create_MPO_from_tensor(tensor,xi,cutoff):
@@ -93,13 +94,15 @@ class MPO(SuperMPS):
         Ampo1 = self.get_all_A(i,i+L)
         Ampo1[L-1] = np.einsum('...k,k->...k',Ampo1[L-1],send)
         Ampo2 = alist
+        xi_at_stage = []
         C = np.identity(k1).reshape((1,k1,k1))
         for j in range(L-1,-1,-1):
             C = np.einsum('knlm,pmi->knlpi',Ampo1[j],C)
             C = np.einsum('jqnp,knlpi->jkqli',Ampo2[j],C)
-            u,s,v, ximin, other_xi = nph.trunc_svd_before_index_ximin_xi_away(C,2,self.xi,cutoff=self.cutoff,norm=2**((self.L)/2))
-            if ximin > self.largest_xi_during_zip_up:
-                self.largest_xi_during_zip_up = ximin
+            u,s,v, ximin, other_xi = nph.trunc_svd_before_index_xi_min_away(C,2,self.xi,cutoff=self.cutoff,norm=2**((self.L)/2))
+            if other_xi != []:
+                xi_at_stage.append(other_xi)
+            self.update_largest_xi(ximin)
             v  = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+j,'r'))
             self[i+j]=v
             self.set_schmidt_values(i+j,'l',s)
@@ -111,6 +114,7 @@ class MPO(SuperMPS):
         else:
             s = self.get_schmidt_values(i,'l')
             self.set_schmidt_values(i,'l',np.einsum('k,k->k',s,C.reshape(-1)))
+        self.xi_thrown_away.append(xi_away(xi_at_stage,"zip_up",norm=2**((self.L)/2)))
         self.into_canonical_form(up_down='down')
 
 def tensor_to_readable_form(ten,dims):

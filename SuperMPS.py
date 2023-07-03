@@ -5,30 +5,40 @@ import numpy_helpers as nph
 import matplotlib.pyplot as plt
 
 class SuperMPS:
-    def __init__(self,mps_array,L,indices_per_node,xi,cutoff):
+    def __init__(self,mps_array,L,indices_per_node,xi,cutoff,xi_thrown_away=[]):
         self.MPS = mps_array
         self.L = L
         self.indices_per_node = indices_per_node
         self.xi = xi
         self.cutoff = cutoff
-        self.xi_thrown_away = []
+        self.xi_thrown_away = xi_thrown_away
+        self.largest_xi_during_zip_up = np.max([len(i) for i in self.get_schmidt_values_all_sites()])
+        self.norm = 1
+        if self.indices_per_node != 1:
+            self.norm = 2**(self.L/2)
     
     @staticmethod
     def create_SuperMPS_from_tensor(tensor,indices_per_node,xi,cutoff):
         if len(tensor.shape)%indices_per_node != 0:
                 raise ValueError("Tensor shape is not compatible with indices_per_node")
         L = len(tensor.shape)//indices_per_node
+        norm = 1
         if indices_per_node != 1:
             tensor = transpose_gate_ind_format(tensor,indices_per_node)
+            norm = 2**(L/2)
         MPS = [np.ones(1,dtype="complex")]
         tensor = np.reshape(tensor,(1,)+tensor.shape+(1,))
+        xi_stage = []
         for i in range(L):
-            u,s,v = nph.trunc_svd_before_index(tensor,1+indices_per_node,xi,cutoff)
+            u,s,v,ximin, other_xi = nph.trunc_svd_before_index_xi_min_away(tensor,1+indices_per_node,xi,cutoff,norm=norm)
+            if other_xi != []:
+                xi_stage.append(other_xi)
             u = np.einsum('k,k...->k...',1/MPS[-1],u)
             MPS.append(u)
             MPS.append(s)
             tensor = np.einsum('k,k...->k...',s,v)
-        return SuperMPS(MPS,L,indices_per_node,xi,cutoff)
+        xi_thrown_away = [xi_away(xi_stage,"initializing",norm)]
+        return SuperMPS(MPS,L,indices_per_node,xi,cutoff,xi_thrown_away)
     
     @staticmethod
     def create_SuperMPS_from_tensor_array(mps_array,xi,cutoff):
@@ -61,6 +71,10 @@ class SuperMPS:
             contracted_tensor = np.tensordot(contracted_tensor,self[i],axes=([-1],[0]))
             contracted_tensor = np.einsum('...k,k->...k',contracted_tensor,self.get_schmidt_values(i,'r'))
         return contracted_tensor
+    
+    def update_largest_xi(self,ximin):
+        if ximin > self.largest_xi_during_zip_up:
+                self.largest_xi_during_zip_up = ximin
 
     def to_MPS_index(self,i):
         return 2*i+1
@@ -194,10 +208,14 @@ class SuperMPS:
             norm = 1
         else:
             norm = 2**(self.L/2)
+        xi_at_stage = []
         if up_down == 'down':
             for i in range(self.L-1):
                 contracted_tensor = self.get_contracted_tensor(i,i+2)
-                u,s,v = nph.trunc_svd_before_index(contracted_tensor,1+self.indices_per_node,xi=self.xi,cutoff=self.cutoff,norm=norm)
+                u,s,v,xi_min, other_xi = nph.trunc_svd_before_index_xi_min_away(contracted_tensor,1+self.indices_per_node,xi=self.xi,cutoff=self.cutoff,norm=norm)
+                self.update_largest_xi(xi_min)
+                if other_xi != []:
+                    xi_at_stage.append(other_xi)
                 u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i,'l'),u)
                 v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i+1,'r'))
                 self[i] = u
@@ -206,7 +224,10 @@ class SuperMPS:
         elif up_down == 'up':
             for i in range(self.L,1,-1):
                 contracted_tensor = self.get_contracted_tensor(i-2,i)
-                u,s,v = nph.trunc_svd_before_index(contracted_tensor,self.indices_per_node+1,xi=self.xi,cutoff=self.cutoff,norm=norm)
+                u,s,v,xi_min, other_xi = nph.trunc_svd_before_index_xi_min_away(contracted_tensor,self.indices_per_node+1,xi=self.xi,cutoff=self.cutoff,norm=norm)
+                self.update_largest_xi(xi_min)
+                if other_xi != []:
+                    xi_at_stage.append(other_xi)
                 u = np.einsum('k,k...->k...',1/self.get_schmidt_values(i-2,'l'),u)
                 v = np.einsum('...k,k->...k',v,1/self.get_schmidt_values(i-1,'r'))
                 self[i-2] = u
@@ -214,6 +235,7 @@ class SuperMPS:
                 self[i-1] = v
         else:
             raise ValueError("up_down must be 'up' or 'down'")
+        self.xi_thrown_away.append(xi_away(xi_at_stage,"into_canonical_form"+up_down,norm=norm))
         
     def entanglement_at_site(self,i,side):
         if i < 0 or i >= self.L:
@@ -264,6 +286,10 @@ def transpose_gate_ind_format(gate,ind_per_node):
     return np.transpose(gate,tranpose_vec)
 
 class xi_away(object):
-    def __init__(self,xi,function_that_called_xi_away):
+    def __init__(self,xi,function_that_called_xi_away,norm):
         self.xi = xi
         self.function_that_called_xi_away = function_that_called_xi_away
+        self.norm = norm
+    
+    def __str__(self) -> str:
+        return "xi_away: "+str(self.xi)+" function: "+self.function_that_called_xi_away + " norm: "+str(self.norm)

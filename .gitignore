@@ -127,3 +127,18 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#pickle files
+*.pkl
+```
+
+#cluster records
+*.o*
+*.e*
+
+#pictures
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.pdf
